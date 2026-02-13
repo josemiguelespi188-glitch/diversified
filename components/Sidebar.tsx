@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { LayoutDashboard, PieChart, Landmark, FileText, UserCheck, Settings, LogOut, ChevronRight, ShieldCheck } from 'lucide-react';
-import { User as UserType } from '../types';
+import { User as UserType, DocumentStatus } from '../types';
 
 interface SidebarProps {
   user: UserType;
@@ -9,10 +9,9 @@ interface SidebarProps {
   setView: (view: string) => void;
   onLogout: () => void;
   onOpenProfile: () => void;
-  isAccreditedBadge?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ user, currentView, setView, onLogout, onOpenProfile, isAccreditedBadge }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ user, currentView, setView, onLogout, onOpenProfile }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'portfolio', label: 'Portfolio', icon: PieChart },
@@ -27,6 +26,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, currentView, setView, on
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  const isAccredited = user.accreditation_status === DocumentStatus.VERIFIED;
 
   return (
     <aside className="w-64 h-screen glass-panel fixed left-0 top-0 border-r border-white/5 flex flex-col p-4 z-50">
@@ -65,9 +66,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, currentView, setView, on
             <div className="overflow-hidden flex-1">
               <p className="text-[11px] font-bold text-white uppercase truncate tracking-tight">{user.full_name}</p>
               <div className="flex items-center gap-1 mt-0.5">
-                <div className={`w-1.5 h-1.5 rounded-full ${isAccreditedBadge ? 'bg-[#00E0C6] cyan-glow' : 'bg-[#8FAEDB]/40'}`}></div>
-                <p className={`text-[8px] uppercase tracking-widest font-bold ${isAccreditedBadge ? 'text-[#00E0C6]' : 'text-[#8FAEDB]/40'}`}>
-                  {isAccreditedBadge ? 'Accredited' : 'Not Accredited'}
+                <div className={`w-1.5 h-1.5 rounded-full ${isAccredited ? 'bg-[#00E0C6] cyan-glow' : 'bg-yellow-500'}`}></div>
+                <p className={`text-[8px] uppercase tracking-widest font-bold ${isAccredited ? 'text-[#00E0C6]' : 'text-yellow-500'}`}>
+                  {isAccredited ? 'Accredited' : 'Awaiting Review'}
                 </p>
               </div>
             </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, Badge, Button } from './UIElements';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -17,10 +18,9 @@ interface DashboardProps {
   onAllocate: (deal: Deal) => void;
   onViewPortfolio: () => void;
   requests?: InvestmentRequest[];
-  onUpdateRequests?: (requests: InvestmentRequest[]) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfolio, requests: initialRequests, onUpdateRequests }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfolio, requests: initialRequests }) => {
   const [activeAccountFilter, setActiveAccountFilter] = useState<string>('all');
   // State to manage requests locally for real-time status updates in the MVP environment
   const [ledgerRequests, setLedgerRequests] = useState<InvestmentRequest[]>([]);
@@ -35,11 +35,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfoli
   }, [initialRequests]);
 
   const handleStatusChange = (requestId: string, newStatus: string) => {
-    const updated = ledgerRequests.map(req => 
+    setLedgerRequests(prev => prev.map(req => 
       req.id === requestId ? { ...req, status: newStatus } : req
-    );
-    setLedgerRequests(updated);
-    if (onUpdateRequests) onUpdateRequests(updated);
+    ));
   };
 
   // Filter requests based on selected account
@@ -50,8 +48,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfoli
 
   // COMPUTE METRICS IN REAL-TIME
   const metrics = useMemo(() => {
+    // Logic as per user request:
+    // - Total Commitment: Sum only orders with status = Completed
+    // - Pending Allocation: Sum all orders with status = Waiting for Allocation
+    // - Diversified Deals: Unique deals with at least one Completed allocation
+    // - Average IRR: Weighted average based only on Completed allocations
+    // - Strategy Diversification: Using only Completed allocations
+    
     const completedRequests = filteredRequests.filter(r => r.status === RequestStatus.FUNDED);
-    const waitingRequests = filteredRequests.filter(r => r.status === RequestStatus.UNDER_REVIEW || r.status === RequestStatus.PENDING_FUNDING);
+    const waitingRequests = filteredRequests.filter(r => r.status === RequestStatus.UNDER_REVIEW);
 
     // 1. Total Commitment
     const totalCommitment = completedRequests.reduce((sum, r) => sum + r.amount, 0);
@@ -270,7 +275,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfoli
                       <td className="py-5">
                         <span className="block font-bold text-white uppercase tracking-tight text-sm">{row.deal_name}</span>
                         <div className="flex items-center gap-2 mt-0.5">
-                           <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest">{MOCK_ACCOUNTS.find(a => a.id === row.account_id)?.type || 'Institutional'}</span>
+                           <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest">{MOCK_ACCOUNTS.find(a => a.id === row.account_id)?.type}</span>
                            <span className="text-[9px] text-[#8FAEDB]/40">•</span>
                            <span className="text-[9px] text-[#2F80ED] uppercase tracking-widest font-bold">{row.strategy}</span>
                         </div>

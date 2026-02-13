@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -11,8 +11,8 @@ import { ProfilePanel } from './components/ProfilePanel';
 import { Auth } from './components/Auth';
 import { Onboarding } from './components/Onboarding';
 import { Button, Card, Badge, SectionHeading } from './components/UIElements';
-import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType, DocumentStatus, RequestStatus } from './types';
-import { MOCK_ACCOUNTS, MOCK_REQUESTS } from './constants';
+import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType } from './types';
+import { MOCK_ACCOUNTS } from './constants';
 import { Globe, Shield, BarChart2, Zap } from 'lucide-react';
 
 type AppState = 'LANDING' | 'AUTH' | 'ONBOARDING' | 'PORTAL';
@@ -114,30 +114,9 @@ const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
 const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: Partial<User>) => void }> = ({ user, onLogout, onUpdateUser }) => {
   const [currentView, setView] = useState('dashboard'); 
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
-  const [requests, setRequests] = useState<InvestmentRequest[]>(MOCK_REQUESTS);
+  const [requests, setRequests] = useState<InvestmentRequest[]>([]);
   const [accounts, setAccounts] = useState<InvestmentAccount[]>(MOCK_ACCOUNTS);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  
-  // Global Accreditation Document Cache
-  const [uploadedDocNames, setUploadedDocNames] = useState<Set<string>>(new Set());
-
-  // Initialize with verified global docs if user is verified (Test Mode Bypass)
-  useEffect(() => {
-    if (user.identity_status === DocumentStatus.VERIFIED || user.accreditation_status === DocumentStatus.VERIFIED) {
-       const initial = new Set<string>();
-       if (user.identity_status === DocumentStatus.VERIFIED) initial.add('Government ID');
-       if (user.accreditation_status === DocumentStatus.VERIFIED) initial.add('Accreditation Letter');
-       setUploadedDocNames(initial);
-    }
-  }, [user]);
-
-  const handleUploadDoc = (docName: string) => {
-    setUploadedDocNames(prev => new Set(prev).add(docName));
-  };
-
-  const isAccredited = useMemo(() => {
-    return uploadedDocNames.has('Accreditation Letter');
-  }, [uploadedDocNames]);
 
   const handleAllocate = (deal: Deal) => {
     setSelectedDeal(deal);
@@ -145,18 +124,16 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
 
   const handleInvestmentSubmit = (data: any) => {
     const newRequest: InvestmentRequest = {
-      id: 'REQ_' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: 'REQ_' + Math.random().toString(36).substr(2, 9),
       user_id: user.id,
       deal_id: data.dealId,
       deal_name: data.dealName,
       account_id: data.accountId,
       amount: data.amount,
-      status: RequestStatus.UNDER_REVIEW, 
-      created_at: new Date().toISOString(),
-      projected_irr: selectedDeal?.projected_irr,
-      strategy: selectedDeal?.strategy
+      status: data.status,
+      created_at: new Date().toISOString()
     };
-    setRequests(prev => [newRequest, ...prev]);
+    setRequests([newRequest, ...requests]);
   };
 
   const handleAddAccount = (data: Partial<InvestmentAccount>) => {
@@ -168,11 +145,7 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
       created_at: new Date().toISOString(),
       ...data
     };
-    setAccounts(prev => [...prev, newAccount]);
-  };
-
-  const handleUpdateRequests = (newRequests: InvestmentRequest[]) => {
-    setRequests(newRequests);
+    setAccounts([...accounts, newAccount]);
   };
 
   return (
@@ -183,7 +156,6 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
         setView={setView} 
         onLogout={onLogout} 
         onOpenProfile={() => setIsProfileOpen(true)}
-        isAccreditedBadge={isAccredited}
       />
       <main className="flex-1 ml-64 p-8 overflow-y-auto">
         {currentView === 'dashboard' && (
@@ -191,7 +163,6 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
             onAllocate={handleAllocate} 
             onViewPortfolio={() => setView('portfolio')}
             requests={requests}
-            onUpdateRequests={handleUpdateRequests}
           />
         )}
         {currentView === 'portfolio' && (
@@ -203,16 +174,10 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
             accounts={accounts} 
             onAddAccount={handleAddAccount}
             onNavigateToAccreditation={() => setView('accreditation')}
-            uploadedDocNames={uploadedDocNames}
           />
         )}
         {currentView === 'accreditation' && (
-          <Accreditation 
-            user={user} 
-            accounts={accounts} 
-            uploadedDocNames={uploadedDocNames} 
-            onUploadDoc={handleUploadDoc} 
-          />
+          <Accreditation user={user} accounts={accounts} />
         )}
         
         {['distributions', 'documents', 'settings'].includes(currentView) && (
@@ -236,9 +201,6 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
             setView('dashboard');
           }}
           userFullName={user.full_name}
-          accounts={accounts}
-          uploadedDocNames={uploadedDocNames}
-          onUploadDoc={handleUploadDoc}
         />
       )}
 
@@ -270,14 +232,7 @@ const App: React.FC = () => {
   }, [appState]);
 
   const handleLoginSuccess = (userData: User) => {
-    // Identity verification state is initialized based on auth context
-    const initialUser = {
-      ...userData,
-      identity_status: DocumentStatus.VERIFIED,
-      accreditation_status: DocumentStatus.NOT_UPLOADED,
-    };
-    
-    setUser(initialUser);
+    setUser(userData);
     if (userData.onboarded) {
       setAppState('PORTAL');
     } else {

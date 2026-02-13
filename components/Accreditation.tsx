@@ -5,26 +5,28 @@ import {
   ShieldCheck, 
   Upload, 
   CheckCircle2, 
+  AlertCircle, 
+  FileText, 
+  User, 
+  ChevronDown, 
+  Info,
   Clock,
   Briefcase,
   Users,
   Landmark,
   X,
   FileUp,
-  FileText,
-  User
+  Search
 } from 'lucide-react';
 import { DocumentStatus, InvestmentAccountType, InvestmentAccount } from '../types';
 
 interface AccreditationProps {
   user: any;
   accounts: InvestmentAccount[];
-  uploadedDocNames: Set<string>;
-  onUploadDoc: (docName: string) => void;
 }
 
-// Global Requirement Mapping
-export const ENTITY_DOC_REQUIREMENTS: Record<string, string> = {
+// Requirement Mapping
+const ENTITY_DOC_REQUIREMENTS: Record<string, string> = {
   [InvestmentAccountType.CORPORATION]: 'Articles of Incorporation',
   [InvestmentAccountType.IRA]: 'Custodian Letter',
   [InvestmentAccountType.K401]: 'Custodian Letter',
@@ -32,23 +34,17 @@ export const ENTITY_DOC_REQUIREMENTS: Record<string, string> = {
   [InvestmentAccountType.REVOCABLE_TRUST]: 'Trust Documentation',
 };
 
-export const REQUIRED_DOCS_BY_ACCOUNT_TYPE: Record<InvestmentAccountType, string[]> = {
-  [InvestmentAccountType.INDIVIDUAL]: ['Accreditation Letter'],
-  [InvestmentAccountType.JOINT]: ['Accreditation Letter'],
-  [InvestmentAccountType.CORPORATION]: ['Accreditation Letter', 'Articles of Incorporation'],
-  [InvestmentAccountType.IRA]: ['Accreditation Letter', 'Custodian Letter'],
-  [InvestmentAccountType.K401]: ['Accreditation Letter', 'Custodian Letter'],
-  [InvestmentAccountType.TRUST]: ['Accreditation Letter', 'Trust Documentation'],
-  [InvestmentAccountType.REVOCABLE_TRUST]: ['Accreditation Letter', 'Trust Documentation'],
-};
+const GLOBAL_DOCS = ['Government ID', 'Accreditation Letter'];
 
-export const GLOBAL_DOCS = ['Government ID', 'Accreditation Letter'];
-
-export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, uploadedDocNames, onUploadDoc }) => {
+export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) => {
+  // Track "Uploaded" documents in local state for MVP simulation
+  const [uploadedDocNames, setUploadedDocNames] = useState<Set<string>>(new Set());
+  const [showAccreditationInfo, setShowAccreditationInfo] = useState(false);
   const [uploadModalDoc, setUploadModalDoc] = useState<string | null>(null);
   const [isSimulatingUpload, setIsSimulatingUpload] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
+  // Derive which entity-specific documents are required based on active accounts
   const requiredEntityDocs = useMemo(() => {
     const docs = new Set<string>();
     accounts.forEach(acc => {
@@ -59,7 +55,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
   }, [accounts]);
 
   const getDocStatus = (docName: string): DocumentStatus => {
-    if (uploadedDocNames.has(docName)) return DocumentStatus.VERIFIED;
+    if (uploadedDocNames.has(docName)) return DocumentStatus.VERIFIED; // In MVP simulation, Uploaded = Verified for immediate feedback
     return DocumentStatus.NOT_UPLOADED;
   };
 
@@ -75,8 +71,9 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
   const handleFinalUpload = async () => {
     if (!uploadModalDoc) return;
     setIsSimulatingUpload(true);
+    // Institutional simulation delay
     await new Promise(resolve => setTimeout(resolve, 1500));
-    onUploadDoc(uploadModalDoc);
+    setUploadedDocNames(prev => new Set(prev).add(uploadModalDoc));
     setIsSimulatingUpload(false);
     setUploadModalDoc(null);
   };
@@ -85,6 +82,8 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
     switch (status) {
       case DocumentStatus.VERIFIED:
         return <Badge variant="success">Completed</Badge>;
+      case DocumentStatus.UNDER_REVIEW:
+        return <Badge variant="info">Under Review</Badge>;
       default:
         return <span className="text-[10px] text-[#8FAEDB] uppercase font-bold opacity-40">Not Submitted</span>;
     }
@@ -95,9 +94,12 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
     return <Clock className="text-[#8FAEDB] opacity-30" size={16} />;
   };
 
+  // Helper to check if a specific account is fully verified
   const isAccountVerified = (acc: InvestmentAccount) => {
-    const required = REQUIRED_DOCS_BY_ACCOUNT_TYPE[acc.type] || ['Accreditation Letter'];
-    return required.every(doc => uploadedDocNames.has(doc)) && uploadedDocNames.has('Government ID');
+    const globalDocsReady = GLOBAL_DOCS.every(doc => uploadedDocNames.has(doc));
+    const entityDoc = ENTITY_DOC_REQUIREMENTS[acc.type];
+    const entityDocReady = !entityDoc || uploadedDocNames.has(entityDoc);
+    return globalDocsReady && entityDocReady;
   };
 
   const totalRequiredCount = GLOBAL_DOCS.length + requiredEntityDocs.length;
@@ -105,7 +107,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
     GLOBAL_DOCS.includes(d) || requiredEntityDocs.includes(d)
   ).length;
 
-  const isFullyCompliant = totalRequiredCount > 0 && totalCompletedCount >= totalRequiredCount;
+  const isFullyCompliant = totalRequiredCount > 0 && totalCompletedCount === totalRequiredCount;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 max-w-5xl mx-auto">
@@ -127,7 +129,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
       <section className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
            <ShieldCheck size={18} className="text-[#2F80ED]" />
-           <h2 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Global Verification</h2>
+           <h2 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Global Verification (Required for all accounts)</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {GLOBAL_DOCS.map(doc => (
@@ -136,7 +138,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
                 <div className="space-y-1">
                   <h3 className="text-xs font-bold text-white uppercase tracking-wider">{doc}</h3>
                   <p className="text-[10px] text-[#8FAEDB] leading-relaxed max-w-[200px]">
-                    {doc === 'Government ID' ? 'Passport or Driver License' : 'Institutional Accreditation Proof'}
+                    {doc === 'Government ID' ? 'Passport or Driver License' : 'Rule 501 Self-Attestation'}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -160,7 +162,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
         <section className="space-y-4 animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-2 mb-2">
              <Landmark size={18} className="text-[#00E0C6]" />
-             <h2 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Entity Documentation</h2>
+             <h2 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Entity Documentation (Required by current accounts)</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {requiredEntityDocs.map(doc => (
@@ -169,7 +171,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
                   <div className="space-y-1">
                     <h3 className="text-xs font-bold text-white uppercase tracking-wider">{doc}</h3>
                     <p className="text-[10px] text-[#8FAEDB] leading-relaxed max-w-[200px]">
-                      Required for your specific entity account type.
+                      Required for your {accounts.find(a => ENTITY_DOC_REQUIREMENTS[a.type] === doc)?.type} account.
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -189,7 +191,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
         </section>
       )}
 
-      {/* Summary View */}
+      {/* 3. Account-Level Verification Summary */}
       <section className="space-y-4 pt-6 border-t border-white/5">
         <h2 className="text-xs font-bold text-white uppercase tracking-[0.2em] mb-4">Account Capability Ledger</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -203,12 +205,11 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
                     {acc.type === InvestmentAccountType.CORPORATION && <Briefcase size={20} />}
                     {(acc.type === InvestmentAccountType.IRA || acc.type === InvestmentAccountType.K401) && <Landmark size={20} />}
                     {acc.type === InvestmentAccountType.JOINT && <Users size={20} />}
-                    {(acc.type === InvestmentAccountType.TRUST || acc.type === InvestmentAccountType.REVOCABLE_TRUST) && <FileText size={20} />}
                   </div>
                   {verified ? (
                     <Badge variant="success">Cleared</Badge>
                   ) : (
-                    <Badge variant="info">Pending</Badge>
+                    <Badge variant="info">Pending Documents</Badge>
                   )}
                 </div>
                 <div>
@@ -217,7 +218,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
                 </div>
                 <div className="pt-4 border-t border-white/5 space-y-2">
                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] text-[#8FAEDB] uppercase font-bold">Government ID</span>
+                      <span className="text-[9px] text-[#8FAEDB] uppercase font-bold">Global Identity</span>
                       {getStatusIcon(getDocStatus('Government ID'))}
                    </div>
                    <div className="flex items-center justify-between">
@@ -237,7 +238,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
         </div>
       </section>
 
-      {/* Upload Modal */}
+      {/* Simulated Institutional Upload Modal */}
       {uploadModalDoc && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#081C3A]/95 backdrop-blur-md" onClick={() => !isSimulatingUpload && setUploadModalDoc(null)}></div>
@@ -263,7 +264,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
                    </div>
                    <div className="text-center">
                       <p className="text-sm font-bold text-white uppercase tracking-wider mb-1">Drag and drop file</p>
-                      <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">or select institutional PDF</p>
+                      <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">or click to select institutional PDF</p>
                    </div>
                 </div>
               ) : (
@@ -274,7 +275,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
                       </div>
                       <div>
                          <p className="text-sm font-bold text-white uppercase tracking-tight">{selectedFileName}</p>
-                         <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">Ready for upload</p>
+                         <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">Ready for institutional upload</p>
                       </div>
                    </div>
                    <button onClick={() => setSelectedFileName(null)} className="text-red-400 hover:text-red-300">
@@ -283,13 +284,27 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
                 </div>
               )}
 
-              <Button 
-                onClick={handleFinalUpload} 
-                disabled={!selectedFileName || isSimulatingUpload} 
-                className="w-full py-4 text-sm tracking-[0.2em] font-bold"
-              >
-                {isSimulatingUpload ? 'Finalizing Upload...' : 'Confirm and Upload'}
-              </Button>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Shield size={16} className="text-[#2F80ED] shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-[#8FAEDB] leading-relaxed uppercase tracking-wider">
+                    All documents are encrypted with AES-256 and stored in compliant sovereign infrastructure. 
+                    Authorized compliance officers only.
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleFinalUpload} 
+                  disabled={!selectedFileName || isSimulatingUpload} 
+                  className="w-full py-4 text-sm tracking-[0.2em] font-bold"
+                >
+                  {isSimulatingUpload ? (
+                    <div className="flex items-center gap-3">
+                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                       Finalizing Secure Upload...
+                    </div>
+                  ) : 'Confirm and Upload'}
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
@@ -297,3 +312,9 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts, up
     </div>
   );
 };
+
+const Shield: React.FC<{ size?: number, className?: string }> = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+  </svg>
+);

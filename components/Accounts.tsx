@@ -16,31 +16,37 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { InvestmentAccountType, DocumentStatus, InvestmentAccount, User as UserType } from '../types';
-import { REQUIRED_DOCS_BY_ACCOUNT_TYPE, ENTITY_DOC_REQUIREMENTS } from './Accreditation';
 
 interface AccountsProps {
   user: UserType;
   accounts: InvestmentAccount[];
   onAddAccount: (data: Partial<InvestmentAccount>) => void;
   onNavigateToAccreditation: () => void;
-  uploadedDocNames: Set<string>;
 }
 
-export const Accounts: React.FC<AccountsProps> = ({ user, accounts, onAddAccount, onNavigateToAccreditation, uploadedDocNames }) => {
+export const Accounts: React.FC<AccountsProps> = ({ user, accounts, onAddAccount, onNavigateToAccreditation }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
   const [newAccountType, setNewAccountType] = useState<InvestmentAccountType>(InvestmentAccountType.INDIVIDUAL);
 
+  const globalIdentityVerified = user.identity_status === DocumentStatus.VERIFIED;
+  const globalAccreditationVerified = user.accreditation_status === DocumentStatus.VERIFIED;
+
   const getAccountStatus = (acc: InvestmentAccount) => {
-    const required = REQUIRED_DOCS_BY_ACCOUNT_TYPE[acc.type] || ['Accreditation Letter'];
-    const missingDocs = required.filter(doc => !uploadedDocNames.has(doc));
+    // Individual inherits everything, others might need specific docs
+    const needsSpecificDoc = 
+      acc.type === InvestmentAccountType.CORPORATION || 
+      acc.type === InvestmentAccountType.IRA || 
+      acc.type === InvestmentAccountType.TRUST || 
+      acc.type === InvestmentAccountType.REVOCABLE_TRUST ||
+      acc.type === InvestmentAccountType.K401;
     
-    if (missingDocs.length === 0 && uploadedDocNames.has('Government ID')) {
+    if (globalIdentityVerified && globalAccreditationVerified && !needsSpecificDoc) {
       return { label: 'Fully Verified', variant: 'success' as const, color: '#00E0C6' };
     }
     
-    if (missingDocs.length > 0) {
-      return { label: 'Pending Documentation', variant: 'warning' as const, color: '#F59E0B' };
+    if (needsSpecificDoc) {
+      return { label: 'Pending Additional Documents', variant: 'warning' as const, color: '#F59E0B' };
     }
     
     return { label: 'Partially Verified', variant: 'info' as const, color: '#2F80ED' };
@@ -66,10 +72,6 @@ export const Accounts: React.FC<AccountsProps> = ({ user, accounts, onAddAccount
 
     onAddAccount(data);
     setShowAddModal(false);
-  };
-
-  const getDocStatus = (docName: string): DocumentStatus => {
-    return uploadedDocNames.has(docName) ? DocumentStatus.VERIFIED : DocumentStatus.NOT_UPLOADED;
   };
 
   return (
@@ -134,11 +136,17 @@ export const Accounts: React.FC<AccountsProps> = ({ user, accounts, onAddAccount
                           Ledger Compliance Matrix
                        </h4>
                        <div className="space-y-2">
-                          <StatusRow label="Global Identity Verification" status={getDocStatus('Government ID')} inherited />
-                          <StatusRow label="Accreditation Proof" status={getDocStatus('Accreditation Letter')} inherited />
+                          <StatusRow label="Global Identity Verification" status={user.identity_status || DocumentStatus.NOT_UPLOADED} inherited />
+                          <StatusRow label="Accreditation Certificate" status={user.accreditation_status || DocumentStatus.NOT_UPLOADED} inherited />
                           
-                          {ENTITY_DOC_REQUIREMENTS[acc.type] && (
-                            <StatusRow label={ENTITY_DOC_REQUIREMENTS[acc.type]} status={getDocStatus(ENTITY_DOC_REQUIREMENTS[acc.type])} />
+                          {acc.type === InvestmentAccountType.CORPORATION && (
+                            <StatusRow label="Articles of Incorporation" status={DocumentStatus.NOT_UPLOADED} />
+                          )}
+                          {(acc.type === InvestmentAccountType.IRA || acc.type === InvestmentAccountType.K401) && (
+                            <StatusRow label="Custodian Confirmation" status={DocumentStatus.NOT_UPLOADED} />
+                          )}
+                          {(acc.type === InvestmentAccountType.TRUST || acc.type === InvestmentAccountType.REVOCABLE_TRUST) && (
+                            <StatusRow label="Trust Agreement" status={DocumentStatus.NOT_UPLOADED} />
                           )}
                        </div>
                     </div>
@@ -173,6 +181,7 @@ export const Accounts: React.FC<AccountsProps> = ({ user, accounts, onAddAccount
           </button>
         </div>
 
+      {/* Add Account Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#081C3A]/90 backdrop-blur-md" onClick={() => setShowAddModal(false)}></div>
@@ -180,6 +189,7 @@ export const Accounts: React.FC<AccountsProps> = ({ user, accounts, onAddAccount
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#0F2A4A]/50">
                <div>
                   <h2 className="text-lg font-bold text-white tracking-tight uppercase">Initialize Ledger</h2>
+                  <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest font-bold">New Institutional Entity</p>
                </div>
                <button onClick={() => setShowAddModal(false)} className="text-[#8FAEDB] hover:text-white transition-colors p-2">
                   <X size={20} />
@@ -200,10 +210,51 @@ export const Accounts: React.FC<AccountsProps> = ({ user, accounts, onAddAccount
                     ))}
                   </select>
                </div>
+
                <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-widest font-bold text-[#8FAEDB]">Ledger Display Name</label>
-                  <input name="display_name" required type="text" className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-sm" placeholder="e.g. My Family Office" />
+                  <input name="display_name" required type="text" className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-sm focus:border-[#2F80ED] outline-none" placeholder="e.g. Vanderbilt Family Office" />
                </div>
+
+               {/* Conditional Fields */}
+               {newAccountType === InvestmentAccountType.CORPORATION && (
+                 <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                   <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase tracking-widest font-bold text-[#8FAEDB]">Legal Entity Name</label>
+                      <input name="entity_name" required type="text" className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-xs" />
+                   </div>
+                   <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase tracking-widest font-bold text-[#8FAEDB]">EIN / Tax ID</label>
+                      <input name="ein" required type="text" className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-xs" />
+                   </div>
+                 </div>
+               )}
+
+               {(newAccountType === InvestmentAccountType.IRA || newAccountType === InvestmentAccountType.K401) && (
+                 <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                   <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase tracking-widest font-bold text-[#8FAEDB]">Custodian Name</label>
+                      <input name="custodian_name" required type="text" className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-xs" />
+                   </div>
+                   <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase tracking-widest font-bold text-[#8FAEDB]">Account Number</label>
+                      <input name="account_number" required type="text" className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-xs" />
+                   </div>
+                 </div>
+               )}
+
+               {(newAccountType === InvestmentAccountType.TRUST || newAccountType === InvestmentAccountType.REVOCABLE_TRUST) && (
+                 <div className="space-y-1.5 animate-in slide-in-from-top-2">
+                    <label className="text-[10px] uppercase tracking-widest font-bold text-[#8FAEDB]">Full Legal Trust Name</label>
+                    <input name="trust_name" required type="text" className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-xs" />
+                 </div>
+               )}
+
+               <div className="p-4 bg-[#2F80ED]/5 border border-[#2F80ED]/20 rounded text-[10px] text-[#8FAEDB] leading-relaxed italic">
+                 New accounts will automatically inherit your verified Global Identity and Accreditation status. 
+                 Additional entity documents may be required to complete the ledger verification.
+               </div>
+
                <Button type="submit" className="w-full py-4 uppercase tracking-[0.2em] text-sm bg-[#00E0C6] hover:bg-[#00E0C6]/80 text-[#081C3A]">Create Investment Ledger</Button>
             </form>
           </Card>
@@ -215,15 +266,27 @@ export const Accounts: React.FC<AccountsProps> = ({ user, accounts, onAddAccount
 
 const StatusRow: React.FC<{ label: string, status: DocumentStatus, inherited?: boolean }> = ({ label, status, inherited }) => {
   const isVerified = status === DocumentStatus.VERIFIED;
+  const isPending = status === DocumentStatus.UNDER_REVIEW;
+  
   return (
     <div className="flex items-center justify-between p-2.5 rounded bg-white/5 border border-white/5">
       <div className="flex items-center gap-2">
-        {isVerified ? <CheckCircle2 size={12} className="text-[#00E0C6]" /> : <Clock size={12} className="text-yellow-500" />}
+        {isVerified ? (
+          <CheckCircle2 size={12} className="text-[#00E0C6]" />
+        ) : isPending ? (
+          <Clock size={12} className="text-yellow-500" />
+        ) : (
+          <AlertCircle size={12} className="text-red-500" />
+        )}
         <span className="text-[10px] text-[#8FAEDB] uppercase tracking-wider font-bold">{label}</span>
       </div>
       <div className="flex items-center gap-2">
-        {inherited && <span className="text-[8px] bg-[#2F80ED]/10 text-[#2F80ED] px-1.5 py-0.5 rounded border border-[#2F80ED]/20 uppercase font-bold tracking-tighter">Inherited</span>}
-        <span className={`text-[8px] uppercase tracking-widest font-bold ${isVerified ? 'text-[#00E0C6]' : 'text-yellow-500'}`}>
+        {inherited && (
+          <span className="text-[8px] bg-[#2F80ED]/10 text-[#2F80ED] px-1.5 py-0.5 rounded border border-[#2F80ED]/20 uppercase font-bold tracking-tighter">Inherited</span>
+        )}
+        <span className={`text-[8px] uppercase tracking-widest font-bold ${
+          isVerified ? 'text-[#00E0C6]' : isPending ? 'text-yellow-500' : 'text-red-400'
+        }`}>
           {status}
         </span>
       </div>
