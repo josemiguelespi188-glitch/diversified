@@ -47,12 +47,32 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [fileTypeError, setFileTypeError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  // All accepted MIME types
+  const ACCEPTED_TYPES: Record<string, string> = {
+    'application/pdf':                                                              'PDF',
+    'image/jpeg':                                                                   'JPG',
+    'image/png':                                                                    'PNG',
+    'image/webp':                                                                   'WebP',
+    'image/heic':                                                                   'HEIC',
+    'image/heif':                                                                   'HEIF',
+    'image/tiff':                                                                   'TIFF',
+    'image/bmp':                                                                    'BMP',
+    'application/msword':                                                           'DOC',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document':     'DOCX',
+  };
+
+  const ACCEPTED_EXTENSIONS = '.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.tiff,.tif,.bmp,.doc,.docx';
 
   const handleFileSelect = useCallback((file: File) => {
-    if (!ACCEPTED_TYPES.includes(file.type)) return;
+    setFileTypeError(null);
+    if (!Object.keys(ACCEPTED_TYPES).includes(file.type)) {
+      const ext = file.name.split('.').pop()?.toUpperCase() ?? 'unknown';
+      setFileTypeError(`"${ext}" files are not accepted. Please upload: PDF, JPG, PNG, WebP, HEIC, TIFF, BMP, DOC or DOCX.`);
+      return;
+    }
     setSelectedFile(file);
   }, []);
 
@@ -94,6 +114,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
     setSelectedFile(null);
     setUploadError(null);
     setUploadProgress(0);
+    setFileTypeError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -301,29 +322,38 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                accept={ACCEPTED_EXTENSIONS}
                 className="hidden"
                 onChange={handleFileInputChange}
               />
 
               {!selectedFile ? (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  onDrop={handleDrop}
-                  onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  className={`group cursor-pointer border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center gap-4 transition-all ${isDragging ? 'border-[#2F80ED] bg-[#2F80ED]/10' : 'border-white/10 hover:border-[#2F80ED]/50 hover:bg-[#2F80ED]/5'}`}
-                >
-                   <div className={`w-16 h-16 rounded-full bg-white/5 flex items-center justify-center transition-colors ${isDragging ? 'text-[#2F80ED]' : 'text-[#8FAEDB] group-hover:text-[#2F80ED]'}`}>
-                      <FileUp size={32} />
-                   </div>
-                   <div className="text-center">
-                      <p className="text-sm font-bold text-white uppercase tracking-wider mb-1">
-                        {isDragging ? 'Release to upload' : 'Drag and drop file'}
-                      </p>
-                      <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">or click to select — PDF, JPG, PNG</p>
-                   </div>
-                </div>
+                <>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDrop={handleDrop}
+                    onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    className={`group cursor-pointer border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center gap-4 transition-all ${fileTypeError ? 'border-red-500/40 bg-red-500/5' : isDragging ? 'border-[#2F80ED] bg-[#2F80ED]/10' : 'border-white/10 hover:border-[#2F80ED]/50 hover:bg-[#2F80ED]/5'}`}
+                  >
+                     <div className={`w-16 h-16 rounded-full bg-white/5 flex items-center justify-center transition-colors ${fileTypeError ? 'text-red-400' : isDragging ? 'text-[#2F80ED]' : 'text-[#8FAEDB] group-hover:text-[#2F80ED]'}`}>
+                        <FileUp size={32} />
+                     </div>
+                     <div className="text-center">
+                        <p className="text-sm font-bold text-white uppercase tracking-wider mb-1">
+                          {isDragging ? 'Release to upload' : 'Drag and drop file'}
+                        </p>
+                        <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">or click to select</p>
+                        <p className="text-[9px] text-[#8FAEDB]/50 uppercase tracking-widest mt-1">PDF · JPG · PNG · WebP · HEIC · TIFF · BMP · DOC · DOCX</p>
+                     </div>
+                  </div>
+                  {fileTypeError && (
+                    <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                      <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-red-400 leading-relaxed">{fileTypeError}</p>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="bg-[#081C3A] border border-[#2F80ED]/30 rounded-xl p-6 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2">
                    <div className="flex items-center gap-4">
