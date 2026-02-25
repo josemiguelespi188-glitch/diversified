@@ -1,13 +1,22 @@
 
-import React from 'react';
-import { MOCK_DEALS } from '../constants';
+import React, { useState, useEffect } from 'react';
 import { Card, Badge, Button } from './UIElements';
 import { MapPin, ShieldCheck, Landmark } from 'lucide-react';
 import { Deal } from '../types';
+import { getDeals } from '../lib/db';
 
 export const Portfolio: React.FC<{ onAllocate: (deal: Deal) => void, hideHeader?: boolean, isHorizontal?: boolean }> = ({ onAllocate, hideHeader = false, isHorizontal = false }) => {
-  const containerClass = isHorizontal 
-    ? "flex gap-8 overflow-x-auto pb-8 scrollbar-hide snap-x" 
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getDeals()
+      .then(setDeals)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const containerClass = isHorizontal
+    ? "flex gap-8 overflow-x-auto pb-8 scrollbar-hide snap-x"
     : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8";
 
   return (
@@ -25,8 +34,14 @@ export const Portfolio: React.FC<{ onAllocate: (deal: Deal) => void, hideHeader?
         </header>
       )}
 
+      {loading && (
+        <div className="flex items-center justify-center py-20 opacity-40">
+          <span className="text-[10px] uppercase tracking-widest font-bold text-[#8FAEDB]">Loading deal flow...</span>
+        </div>
+      )}
+
       <div className={containerClass}>
-        {MOCK_DEALS.map((deal) => (
+        {deals.map((deal) => (
           <Card key={deal.id} className={`overflow-hidden p-0 flex flex-col group border-white/5 hover:border-[#2F80ED]/30 transition-all duration-300 ${isHorizontal ? 'min-w-[340px] md:min-w-[400px] snap-center' : ''}`}>
             {/* Header Image */}
             <div className="h-48 relative overflow-hidden">

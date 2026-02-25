@@ -12,7 +12,7 @@ import { Auth } from './components/Auth';
 import { Onboarding } from './components/Onboarding';
 import { Button, Card, Badge, SectionHeading } from './components/UIElements';
 import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType } from './types';
-import { MOCK_ACCOUNTS } from './constants';
+import { getAccountsByUser, getRequestsByUser, insertAccount, insertRequest } from './lib/db';
 import { Globe, Shield, BarChart2, Zap } from 'lucide-react';
 
 type AppState = 'LANDING' | 'AUTH' | 'ONBOARDING' | 'PORTAL';
@@ -112,40 +112,67 @@ const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
 };
 
 const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: Partial<User>) => void }> = ({ user, onLogout, onUpdateUser }) => {
-  const [currentView, setView] = useState('dashboard'); 
+  const [currentView, setView] = useState('dashboard');
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [requests, setRequests] = useState<InvestmentRequest[]>([]);
-  const [accounts, setAccounts] = useState<InvestmentAccount[]>(MOCK_ACCOUNTS);
+  const [accounts, setAccounts] = useState<InvestmentAccount[]>([]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      getAccountsByUser(user.id),
+      getRequestsByUser(user.id),
+    ]).then(([accs, reqs]) => {
+      setAccounts(accs);
+      setRequests(reqs);
+    });
+  }, [user.id]);
 
   const handleAllocate = (deal: Deal) => {
     setSelectedDeal(deal);
   };
 
-  const handleInvestmentSubmit = (data: any) => {
-    const newRequest: InvestmentRequest = {
-      id: 'REQ_' + Math.random().toString(36).substr(2, 9),
+  const handleInvestmentSubmit = async (data: any) => {
+    const payload = {
       user_id: user.id,
       deal_id: data.dealId,
       deal_name: data.dealName,
       account_id: data.accountId,
       amount: data.amount,
       status: data.status,
-      created_at: new Date().toISOString()
     };
-    setRequests([newRequest, ...requests]);
+    try {
+      const saved = await insertRequest(payload);
+      setRequests(prev => [saved, ...prev]);
+    } catch {
+      // fallback: add optimistically with local id
+      const fallback: InvestmentRequest = {
+        id: 'REQ_' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+        ...payload,
+      };
+      setRequests(prev => [fallback, ...prev]);
+    }
   };
 
-  const handleAddAccount = (data: Partial<InvestmentAccount>) => {
-    const newAccount: InvestmentAccount = {
-      id: 'ACC_' + Math.random().toString(36).substr(2, 5).toUpperCase(),
+  const handleAddAccount = async (data: Partial<InvestmentAccount>) => {
+    const payload = {
       user_id: user.id,
       type: data.type || InvestmentAccountType.INDIVIDUAL,
       display_name: data.display_name || 'New Ledger',
-      created_at: new Date().toISOString(),
-      ...data
+      ...data,
     };
-    setAccounts([...accounts, newAccount]);
+    try {
+      const saved = await insertAccount(payload as Omit<InvestmentAccount, 'id' | 'created_at'>);
+      setAccounts(prev => [...prev, saved]);
+    } catch {
+      const fallback: InvestmentAccount = {
+        id: 'ACC_' + Math.random().toString(36).substr(2, 5).toUpperCase(),
+        created_at: new Date().toISOString(),
+        ...payload,
+      } as InvestmentAccount;
+      setAccounts(prev => [...prev, fallback]);
+    }
   };
 
   return (
@@ -159,10 +186,11 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
       />
       <main className="flex-1 ml-64 p-8 overflow-y-auto">
         {currentView === 'dashboard' && (
-          <Dashboard 
-            onAllocate={handleAllocate} 
+          <Dashboard
+            onAllocate={handleAllocate}
             onViewPortfolio={() => setView('portfolio')}
             requests={requests}
+            accounts={accounts}
           />
         )}
         {currentView === 'portfolio' && (

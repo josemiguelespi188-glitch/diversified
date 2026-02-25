@@ -3,8 +3,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Card, Badge, Button } from './UIElements';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { TrendingUp, Users, Building, ShieldCheck, FileText, Download, PieChart as PieChartIcon, ChevronDown } from 'lucide-react';
-import { Deal, InvestmentRequest, RequestStatus } from '../types';
-import { MOCK_ACCOUNTS, MOCK_REQUESTS } from '../constants';
+import { Deal, InvestmentRequest, InvestmentAccount, RequestStatus } from '../types';
+import { updateRequestStatus } from '../lib/db';
 
 const STRATEGY_COLORS: Record<string, string> = {
   'Multifamily': '#2F80ED',
@@ -18,26 +18,29 @@ interface DashboardProps {
   onAllocate: (deal: Deal) => void;
   onViewPortfolio: () => void;
   requests?: InvestmentRequest[];
+  accounts?: InvestmentAccount[];
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfolio, requests: initialRequests }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfolio, requests: initialRequests = [], accounts = [] }) => {
   const [activeAccountFilter, setActiveAccountFilter] = useState<string>('all');
-  // State to manage requests locally for real-time status updates in the MVP environment
   const [ledgerRequests, setLedgerRequests] = useState<InvestmentRequest[]>([]);
 
-  // Initialize ledger requests with provided requests or default mock data
   useEffect(() => {
-    if (initialRequests && initialRequests.length > 0) {
-      setLedgerRequests(initialRequests);
-    } else {
-      setLedgerRequests(MOCK_REQUESTS);
-    }
+    setLedgerRequests(initialRequests);
   }, [initialRequests]);
 
-  const handleStatusChange = (requestId: string, newStatus: string) => {
-    setLedgerRequests(prev => prev.map(req => 
+  const handleStatusChange = async (requestId: string, newStatus: string) => {
+    setLedgerRequests(prev => prev.map(req =>
       req.id === requestId ? { ...req, status: newStatus } : req
     ));
+    try {
+      await updateRequestStatus(requestId, newStatus);
+    } catch {
+      // revert on failure
+      setLedgerRequests(prev => prev.map(req =>
+        req.id === requestId ? { ...req, status: req.status } : req
+      ));
+    }
   };
 
   // Filter requests based on selected account
@@ -121,7 +124,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfoli
           >
             All Accounts
           </button>
-          {MOCK_ACCOUNTS.map(acc => (
+          {accounts.map(acc => (
             <button
               key={acc.id}
               onClick={() => setActiveAccountFilter(acc.id)}
@@ -275,7 +278,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfoli
                       <td className="py-5">
                         <span className="block font-bold text-white uppercase tracking-tight text-sm">{row.deal_name}</span>
                         <div className="flex items-center gap-2 mt-0.5">
-                           <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest">{MOCK_ACCOUNTS.find(a => a.id === row.account_id)?.type}</span>
+                           <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest">{accounts.find(a => a.id === row.account_id)?.type}</span>
                            <span className="text-[9px] text-[#8FAEDB]/40">•</span>
                            <span className="text-[9px] text-[#2F80ED] uppercase tracking-widest font-bold">{row.strategy}</span>
                         </div>
