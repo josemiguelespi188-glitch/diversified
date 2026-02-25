@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { Card, Badge, Button } from './UIElements';
 import { 
   ShieldCheck, 
@@ -42,7 +42,34 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
   const [showAccreditationInfo, setShowAccreditationInfo] = useState(false);
   const [uploadModalDoc, setUploadModalDoc] = useState<string | null>(null);
   const [isSimulatingUpload, setIsSimulatingUpload] = useState(false);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+
+  const handleFileSelect = useCallback((file: File) => {
+    if (!ACCEPTED_TYPES.includes(file.type)) return;
+    setSelectedFile(file);
+  }, []);
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   // Derive which entity-specific documents are required based on active accounts
   const requiredEntityDocs = useMemo(() => {
@@ -61,17 +88,13 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
 
   const handleOpenUpload = (docName: string) => {
     setUploadModalDoc(docName);
-    setSelectedFileName(null);
-  };
-
-  const handleSimulateFileSelect = () => {
-    setSelectedFileName(`AXIS_DOC_${Math.floor(Math.random() * 9000) + 1000}.pdf`);
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleFinalUpload = async () => {
-    if (!uploadModalDoc) return;
+    if (!uploadModalDoc || !selectedFile) return;
     setIsSimulatingUpload(true);
-    // Institutional simulation delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     setUploadedDocNames(prev => new Set(prev).add(uploadModalDoc));
     setIsSimulatingUpload(false);
@@ -254,17 +277,31 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
             </div>
 
             <div className="p-8 space-y-8">
-              {!selectedFileName ? (
-                <div 
-                  onClick={handleSimulateFileSelect}
-                  className="group cursor-pointer border-2 border-dashed border-white/10 rounded-xl p-12 flex flex-col items-center justify-center gap-4 hover:border-[#2F80ED]/50 hover:bg-[#2F80ED]/5 transition-all"
+              {/* Hidden real file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
+
+              {!selectedFile ? (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  className={`group cursor-pointer border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center gap-4 transition-all ${isDragging ? 'border-[#2F80ED] bg-[#2F80ED]/10' : 'border-white/10 hover:border-[#2F80ED]/50 hover:bg-[#2F80ED]/5'}`}
                 >
-                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-[#8FAEDB] group-hover:text-[#2F80ED] transition-colors">
+                   <div className={`w-16 h-16 rounded-full bg-white/5 flex items-center justify-center transition-colors ${isDragging ? 'text-[#2F80ED]' : 'text-[#8FAEDB] group-hover:text-[#2F80ED]'}`}>
                       <FileUp size={32} />
                    </div>
                    <div className="text-center">
-                      <p className="text-sm font-bold text-white uppercase tracking-wider mb-1">Drag and drop file</p>
-                      <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">or click to select institutional PDF</p>
+                      <p className="text-sm font-bold text-white uppercase tracking-wider mb-1">
+                        {isDragging ? 'Release to upload' : 'Drag and drop file'}
+                      </p>
+                      <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">or click to select — PDF, JPG, PNG</p>
                    </div>
                 </div>
               ) : (
@@ -274,11 +311,11 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
                          <FileText size={24} />
                       </div>
                       <div>
-                         <p className="text-sm font-bold text-white uppercase tracking-tight">{selectedFileName}</p>
-                         <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">Ready for institutional upload</p>
+                         <p className="text-sm font-bold text-white tracking-tight truncate max-w-[220px]">{selectedFile.name}</p>
+                         <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">{formatFileSize(selectedFile.size)} · Ready to upload</p>
                       </div>
                    </div>
-                   <button onClick={() => setSelectedFileName(null)} className="text-red-400 hover:text-red-300">
+                   <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} className="text-red-400 hover:text-red-300">
                       <X size={16} />
                    </button>
                 </div>
@@ -292,9 +329,9 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
                     Authorized compliance officers only.
                   </p>
                 </div>
-                <Button 
-                  onClick={handleFinalUpload} 
-                  disabled={!selectedFileName || isSimulatingUpload} 
+                <Button
+                  onClick={handleFinalUpload}
+                  disabled={!selectedFile || isSimulatingUpload}
                   className="w-full py-4 text-sm tracking-[0.2em] font-bold"
                 >
                   {isSimulatingUpload ? (
