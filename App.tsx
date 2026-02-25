@@ -88,10 +88,10 @@ const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
           <div className="space-y-6 col-span-1 md:col-span-2">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45"></div>
-              <span className="text-xl font-bold text-white">AXIS KEY</span>
+              <span className="text-xl font-bold text-white">Diversified</span>
             </div>
             <p className="text-sm text-[#8FAEDB] max-w-sm">
-              AXIS KEY™ is a private platform for accredited investors. We provide the infrastructure to build and manage sophisticated private equity portfolios.
+              Diversified™ is a private platform for accredited investors. We provide the infrastructure to build and manage sophisticated private equity portfolios.
             </p>
           </div>
           <div className="space-y-4">
@@ -104,7 +104,7 @@ const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-white/5 text-[10px] text-[#8FAEDB]/50 uppercase tracking-[0.2em]">
-          &copy; 2024 AXIS KEY INFRASTRUCTURE. ALL RIGHTS RESERVED. NOT INVESTMENT ADVICE. ACCREDITED INVESTORS ONLY.
+          &copy; 2024 Diversified INFRASTRUCTURE. ALL RIGHTS RESERVED. NOT INVESTMENT ADVICE. ACCREDITED INVESTORS ONLY.
         </div>
       </footer>
     </div>

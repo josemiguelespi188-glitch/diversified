@@ -9,7 +9,7 @@ export const Navbar: React.FC<{ onAccess: () => void }> = ({ onAccess }) => {
         <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45 flex items-center justify-center">
           <div className="w-4 h-4 bg-white/20 rounded-sm"></div>
         </div>
-        <span className="text-xl font-bold text-white tracking-tighter">AXIS KEY<span className="text-[10px] align-top">TM</span></span>
+        <span className="text-xl font-bold text-white tracking-tighter">Diversified</span>
       </div>
 
       <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#8FAEDB]">

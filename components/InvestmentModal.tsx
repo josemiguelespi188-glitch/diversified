@@ -237,7 +237,7 @@ export const InvestmentModal: React.FC<InvestmentModalProps> = ({ deal, onClose,
                     <div className="p-6 border-t border-white/5 bg-black/20 space-y-4 animate-in slide-in-from-top-2">
                        <div className="grid grid-cols-2 gap-4">
                           <DetailItem label="Bank Name" value="Chase Bank, N.A." />
-                          <DetailItem label="Beneficiary" value="AXIS KEY HOLDINGS LLC" />
+                          <DetailItem label="Beneficiary" value="Diversified HOLDINGS LLC" />
                           <DetailItem label="Account Number" value="9876543210" copyable />
                           <DetailItem label="Routing Number" value="021000021" copyable />
                           <DetailItem label="SWIFT Code" value="CHASEUS33" />
@@ -282,7 +282,7 @@ export const InvestmentModal: React.FC<InvestmentModalProps> = ({ deal, onClose,
                           <DetailItem label="Account Type" value="Commercial Checking" />
                        </div>
                        <div className="text-[9px] text-[#8FAEDB] italic uppercase opacity-60">
-                         "I authorize AXIS KEY to initiate a one-time ACH debit from the account above for the total allocation amount."
+                         "I authorize Diversified to initiate a one-time ACH debit from the account above for the total allocation amount."
                        </div>
                     </div>
                   )}
