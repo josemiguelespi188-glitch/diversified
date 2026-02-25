@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, Button } from './UIElements';
 import { InvestmentAccountType } from '../types';
-import { ShieldCheck, ArrowRight, LogIn, UserPlus, Key, Layout, AlertCircle } from 'lucide-react';
+import { ShieldCheck, ArrowRight, ArrowLeft, LogIn, UserPlus, Key, Layout, AlertCircle } from 'lucide-react';
 import { signInWithGoogle } from '../firebase';
 
 interface AuthProps {
@@ -171,6 +171,14 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
       </div>
 
       <Card className="w-full max-w-md p-8 animate-in fade-in zoom-in-95 duration-300 border-[#2F80ED]/10">
+        <button
+          onClick={() => setView('selection')}
+          className="flex items-center gap-1.5 text-[#8FAEDB] hover:text-white transition-colors mb-6 text-[11px] uppercase tracking-widest font-bold"
+        >
+          <ArrowLeft size={14} />
+          Back
+        </button>
+
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#2F80ED]/10 text-[#2F80ED] mb-4">
             {view === 'login' ? <LogIn size={24} /> : <UserPlus size={24} />}
