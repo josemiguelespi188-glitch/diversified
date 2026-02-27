@@ -166,8 +166,9 @@ export const Accounts: React.FC<AccountsProps> = ({ user, accounts, onAddAccount
                 </div>
               )}
             </div>
-          ))}
-        </section>
+          );
+        })}
+      </section>
 
         <div className="pt-6">
           <button 

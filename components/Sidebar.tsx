@@ -33,7 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, currentView, setView, on
     <aside className="w-64 h-screen glass-panel fixed left-0 top-0 border-r border-white/5 flex flex-col p-4 z-50">
       <div className="flex items-center gap-3 px-4 py-8 mb-4 border-b border-white/5">
         <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45"></div>
-        <span className="text-xl font-bold text-white tracking-tight">AXIS KEY</span>
+        <span className="text-xl font-bold text-white tracking-tight">DiverCfly</span>
       </div>
 
       <nav className="flex-1 space-y-1">
@@ -107,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, currentView, setView, on
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#8FAEDB] hover:text-red-400 hover:bg-red-400/5 transition-all group"
           >
             <LogOut size={16} className="group-hover:text-red-400" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Sign Out</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Log Out</span>
           </button>
         </div>
 

@@ -42,7 +42,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
     onSuccess({
       ...formData,
       id: 'usr_' + Math.random().toString(36).substr(2, 9),
-      onboarded: false
+      onboarded: view === 'login'
     });
   };
 
@@ -54,7 +54,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45 flex items-center justify-center">
               <div className="w-4 h-4 bg-white/20 rounded-sm"></div>
             </div>
-            <span className="font-bold text-white tracking-tighter">AXIS KEY</span>
+            <span className="font-bold text-white tracking-tighter">DiverCfly</span>
           </button>
         </div>
 
@@ -77,7 +77,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
                   <LogIn size={20} />
                 </div>
                 <div className="text-left">
-                  <span className="block font-bold text-white uppercase tracking-wider text-sm">Sign In</span>
+                  <span className="block font-bold text-white uppercase tracking-wider text-sm">Log In</span>
                   <span className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">Existing Portfolio Access</span>
                 </div>
               </div>
@@ -93,7 +93,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
                   <UserPlus size={20} />
                 </div>
                 <div className="text-left">
-                  <span className="block font-bold text-white uppercase tracking-wider text-sm">Open Account</span>
+                  <span className="block font-bold text-white uppercase tracking-wider text-sm">Create an Account</span>
                   <span className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">New Institutional Client</span>
                 </div>
               </div>
@@ -141,7 +141,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
           <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45 flex items-center justify-center">
             <div className="w-4 h-4 bg-white/20 rounded-sm"></div>
           </div>
-          <span className="font-bold text-white tracking-tighter">AXIS KEY</span>
+          <span className="font-bold text-white tracking-tighter">DiverCfly</span>
         </button>
       </div>
 
@@ -151,7 +151,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             {view === 'login' ? <LogIn size={24} /> : <UserPlus size={24} />}
           </div>
           <h1 className="text-2xl font-bold text-white uppercase tracking-tight">
-            {view === 'login' ? 'Investor Sign In' : 'Institutional Onboarding'}
+            {view === 'login' ? 'Investor Log In' : 'Create an Account'}
           </h1>
           <p className="text-[#8FAEDB] text-sm mt-2 uppercase tracking-widest opacity-60 text-[10px]">Private Capital Infrastructure</p>
         </div>
@@ -213,12 +213,12 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
           <div className="flex items-start gap-3 py-2">
             <input type="checkbox" required className="mt-1 accent-[#2F80ED]" id="terms" />
             <label htmlFor="terms" className="text-[10px] text-[#8FAEDB] leading-relaxed">
-              I accept the AXIS KEY Terms & Conditions and acknowledge the risk of private market investments.
+              I accept the DiverCfly Terms & Conditions and acknowledge the risk of private market investments.
             </label>
           </div>
 
           <Button className="w-full py-4 flex items-center justify-center gap-2 group">
-            {view === 'login' ? 'Sign In' : 'Create Account'}
+            {view === 'login' ? 'Log In' : 'Create Account'}
             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </Button>
 
@@ -227,7 +227,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             onClick={() => setView(view === 'login' ? 'signup' : 'login')}
             className="w-full text-[10px] text-[#8FAEDB] hover:text-white uppercase tracking-widest font-bold transition-colors"
           >
-            {view === 'login' ? "Don't have an account? Create one" : "Already have an account? Sign In"}
+            {view === 'login' ? "Don't have an account? Create an Account" : "Already have an account? Log In"}
           </button>
         </form>
 

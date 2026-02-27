@@ -4,7 +4,7 @@ import { Deal, InvestmentAccountType, RequestStatus, InvestmentRequest, Investme
 export const COLORS = {
   bg: '#081C3A',
   panel: '#0F2A4A',
-  axisBlue: '#0B2E6D',
+  divercflyBlue: '#0B2E6D',
   royalBlue: '#1457B6',
   electricBlue: '#2F80ED',
   cyanGlow: '#56CCF2',
