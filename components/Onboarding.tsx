@@ -41,7 +41,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ user, onComplete }) => {
         <div className="flex justify-between items-center mb-12">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45"></div>
-            <span className="text-xl font-bold text-white tracking-tighter">AXIS KEY</span>
+            <span className="text-xl font-bold text-white tracking-tighter">DIVERSIFY</span>
           </div>
           <div className="flex gap-2">
             {[1, 2, 3].map(i => (

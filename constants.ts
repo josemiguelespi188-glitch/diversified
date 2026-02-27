@@ -1,5 +1,5 @@
 
-import { Deal, InvestmentAccountType, RequestStatus, InvestmentRequest, InvestmentAccount } from './types';
+import { Deal, InvestmentAccountType, RequestStatus, InvestmentRequest, InvestmentAccount, Distribution, PlatformDocument } from './types';
 
 export const COLORS = {
   bg: '#081C3A',
@@ -153,6 +153,81 @@ export const MOCK_ACCOUNTS: InvestmentAccount[] = [
   { id: 'acc_ind', user_id: 'usr_demo', type: InvestmentAccountType.INDIVIDUAL, display_name: 'Individual Account', created_at: '2024-10-01T10:00:00Z' },
   { id: 'acc_corp', user_id: 'usr_demo', type: InvestmentAccountType.CORPORATION, display_name: 'Corporation Account', created_at: '2024-10-01T10:00:00Z' },
   { id: 'acc_joint', user_id: 'usr_demo', type: InvestmentAccountType.JOINT, display_name: 'Joint Account', created_at: '2024-10-01T10:00:00Z' }
+];
+
+export const MOCK_DISTRIBUTIONS: Distribution[] = [
+  {
+    id: 'dist_1', deal_id: 'd1', deal_name: 'Phoenix Multifamily Fund', user_id: 'usr_demo',
+    amount: 1025, date: '2025-01-15T10:00:00Z', yield_percent: 8.2, type: 'quarterly', document_url: '#'
+  },
+  {
+    id: 'dist_2', deal_id: 'd1', deal_name: 'Phoenix Multifamily Fund', user_id: 'usr_demo',
+    amount: 1025, date: '2024-10-15T10:00:00Z', yield_percent: 8.2, type: 'quarterly', document_url: '#'
+  },
+  {
+    id: 'dist_3', deal_id: 'd2', deal_name: 'Rusty Bear Industrial', user_id: 'usr_demo',
+    amount: 475, date: '2025-01-20T10:00:00Z', yield_percent: 7.6, type: 'quarterly', document_url: '#'
+  },
+  {
+    id: 'dist_4', deal_id: 'd3', deal_name: 'Cornerstone Debt Fund', user_id: 'usr_demo',
+    amount: 2500, date: '2025-01-31T10:00:00Z', yield_percent: 10.0, type: 'monthly', document_url: '#'
+  },
+  {
+    id: 'dist_5', deal_id: 'd3', deal_name: 'Cornerstone Debt Fund', user_id: 'usr_demo',
+    amount: 2500, date: '2024-12-31T10:00:00Z', yield_percent: 10.0, type: 'monthly', document_url: '#'
+  },
+  {
+    id: 'dist_6', deal_id: 'd4', deal_name: 'Urban Core Development', user_id: 'usr_demo',
+    amount: 1800, date: '2025-02-01T10:00:00Z', yield_percent: 9.6, type: 'special', document_url: '#'
+  }
+];
+
+export const MOCK_DOCUMENTS: PlatformDocument[] = [
+  {
+    id: 'doc_1', deal_id: 'd1', deal_name: 'Phoenix Multifamily Fund', user_id: 'usr_demo',
+    title: 'Subscription Agreement', category: 'subscription',
+    file_name: 'Subscription_Agreement_PhoenixMF_Vanderbilt.pdf', date: '2024-10-24T10:00:00Z', size_kb: 842
+  },
+  {
+    id: 'doc_2', deal_id: 'd2', deal_name: 'Rusty Bear Industrial', user_id: 'usr_demo',
+    title: 'Subscription Agreement', category: 'subscription',
+    file_name: 'Subscription_Agreement_RustyBear_Vanderbilt.pdf', date: '2024-10-28T10:00:00Z', size_kb: 794
+  },
+  {
+    id: 'doc_3', deal_id: 'd3', deal_name: 'Cornerstone Debt Fund', user_id: 'usr_demo',
+    title: 'Subscription Agreement', category: 'subscription',
+    file_name: 'Subscription_Agreement_Cornerstone_Vanderbilt.pdf', date: '2024-11-01T10:00:00Z', size_kb: 918
+  },
+  {
+    id: 'doc_4', deal_id: 'd1', deal_name: 'Phoenix Multifamily Fund', user_id: 'usr_demo',
+    title: 'Private Placement Memorandum', category: 'ppm',
+    file_name: 'PPM_PhoenixMultifamilyFund_2024.pdf', date: '2024-10-01T10:00:00Z', size_kb: 4210
+  },
+  {
+    id: 'doc_5', deal_id: 'd2', deal_name: 'Rusty Bear Industrial', user_id: 'usr_demo',
+    title: 'Private Placement Memorandum', category: 'ppm',
+    file_name: 'PPM_RustyBearIndustrial_2024.pdf', date: '2024-10-05T10:00:00Z', size_kb: 3870
+  },
+  {
+    id: 'doc_6', deal_id: 'd1', deal_name: 'Phoenix Multifamily Fund', user_id: 'usr_demo',
+    title: 'Q1 2025 Distribution Notice', category: 'distribution_notice',
+    file_name: 'Distribution_Q1_2025_PhoenixMF.pdf', date: '2025-01-15T10:00:00Z', size_kb: 245
+  },
+  {
+    id: 'doc_7', deal_id: 'd3', deal_name: 'Cornerstone Debt Fund', user_id: 'usr_demo',
+    title: 'January 2025 Distribution Notice', category: 'distribution_notice',
+    file_name: 'Distribution_Jan_2025_Cornerstone.pdf', date: '2025-01-31T10:00:00Z', size_kb: 198
+  },
+  {
+    id: 'doc_8', user_id: 'usr_demo',
+    title: 'Schedule K-1 (2024)', category: 'tax',
+    file_name: 'K1_2024_Vanderbilt_Diversify.pdf', date: '2025-02-15T10:00:00Z', size_kb: 312
+  },
+  {
+    id: 'doc_9', user_id: 'usr_demo',
+    title: 'Operating Agreement Amendment', category: 'legal',
+    file_name: 'Diversify_Operating_Agreement_Amendment_2025.pdf', date: '2025-01-01T10:00:00Z', size_kb: 1104
+  }
 ];
 
 export const MOCK_REQUESTS: InvestmentRequest[] = [

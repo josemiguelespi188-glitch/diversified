@@ -103,7 +103,7 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
   };
 
   const totalRequiredCount = GLOBAL_DOCS.length + requiredEntityDocs.length;
-  const totalCompletedCount = Array.from(uploadedDocNames).filter(d => 
+  const totalCompletedCount = Array.from(uploadedDocNames).filter((d: string) =>
     GLOBAL_DOCS.includes(d) || requiredEntityDocs.includes(d)
   ).length;
 

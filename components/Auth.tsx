@@ -54,7 +54,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45 flex items-center justify-center">
               <div className="w-4 h-4 bg-white/20 rounded-sm"></div>
             </div>
-            <span className="font-bold text-white tracking-tighter">AXIS KEY</span>
+            <span className="font-bold text-white tracking-tighter">DIVERSIFY</span>
           </button>
         </div>
 
@@ -141,7 +141,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
           <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45 flex items-center justify-center">
             <div className="w-4 h-4 bg-white/20 rounded-sm"></div>
           </div>
-          <span className="font-bold text-white tracking-tighter">AXIS KEY</span>
+          <span className="font-bold text-white tracking-tighter">DIVERSIFY</span>
         </button>
       </div>
 
@@ -213,7 +213,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
           <div className="flex items-start gap-3 py-2">
             <input type="checkbox" required className="mt-1 accent-[#2F80ED]" id="terms" />
             <label htmlFor="terms" className="text-[10px] text-[#8FAEDB] leading-relaxed">
-              I accept the AXIS KEY Terms & Conditions and acknowledge the risk of private market investments.
+              I accept the DIVERSIFY Terms & Conditions and acknowledge the risk of private market investments.
             </label>
           </div>
 

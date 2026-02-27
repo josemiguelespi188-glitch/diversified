@@ -10,6 +10,9 @@ import { Accounts } from './components/Accounts';
 import { ProfilePanel } from './components/ProfilePanel';
 import { Auth } from './components/Auth';
 import { Onboarding } from './components/Onboarding';
+import { Distributions } from './components/Distributions';
+import { Documents } from './components/Documents';
+import { Support } from './components/Support';
 import { Button, Card, Badge, SectionHeading } from './components/UIElements';
 import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType } from './types';
 import { MOCK_ACCOUNTS } from './constants';
@@ -88,10 +91,10 @@ const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
           <div className="space-y-6 col-span-1 md:col-span-2">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45"></div>
-              <span className="text-xl font-bold text-white">AXIS KEY</span>
+              <span className="text-xl font-bold text-white">DIVERSIFY</span>
             </div>
             <p className="text-sm text-[#8FAEDB] max-w-sm">
-              AXIS KEY™ is a private platform for accredited investors. We provide the infrastructure to build and manage sophisticated private equity portfolios.
+              DIVERSIFY™ aggregates accredited capital to negotiate institutional-grade real estate deals in the U.S. — lower minimums, better terms, full transparency.
             </p>
           </div>
           <div className="space-y-4">
@@ -104,7 +107,7 @@ const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-white/5 text-[10px] text-[#8FAEDB]/50 uppercase tracking-[0.2em]">
-          &copy; 2024 AXIS KEY INFRASTRUCTURE. ALL RIGHTS RESERVED. NOT INVESTMENT ADVICE. ACCREDITED INVESTORS ONLY.
+          &copy; 2024 DIVERSIFY CAPITAL. ALL RIGHTS RESERVED. NOT INVESTMENT ADVICE. ACCREDITED INVESTORS ONLY.
         </div>
       </footer>
     </div>
@@ -180,11 +183,14 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
           <Accreditation user={user} accounts={accounts} />
         )}
         
-        {['distributions', 'documents', 'settings'].includes(currentView) && (
+        {currentView === 'distributions' && <Distributions />}
+        {currentView === 'documents' && <Documents />}
+        {currentView === 'support' && <Support />}
+        {currentView === 'settings' && (
           <div className="flex items-center justify-center h-full">
             <Card className="text-center p-20 max-w-lg border-white/5">
-              <h2 className="text-2xl font-bold text-white uppercase mb-4">{currentView} Module</h2>
-              <p className="text-[#8FAEDB] text-sm uppercase tracking-widest leading-relaxed">Infrastructure under maintenance. Your ledger data remains encrypted and secure.</p>
+              <h2 className="text-2xl font-bold text-white uppercase mb-4">Settings</h2>
+              <p className="text-[#8FAEDB] text-sm uppercase tracking-widest leading-relaxed">Account settings infrastructure coming soon.</p>
               <Button onClick={() => setView('dashboard')} variant="outline" className="mt-8">Return to Dashboard</Button>
             </Card>
           </div>
@@ -213,7 +219,11 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
 
       {/* Support Orb */}
       <div className="fixed bottom-8 right-8 z-40">
-        <button className="w-14 h-14 bg-[#2F80ED] rounded-full flex items-center justify-center text-white cyan-glow hover:scale-110 transition-all border border-white/10">
+        <button
+          onClick={() => setView('support')}
+          title="Open Support"
+          className="w-14 h-14 bg-[#2F80ED] rounded-full flex items-center justify-center text-white cyan-glow hover:scale-110 transition-all border border-white/10"
+        >
            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
            </svg>

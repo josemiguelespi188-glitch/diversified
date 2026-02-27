@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, PieChart, Landmark, FileText, UserCheck, Settings, LogOut, ChevronRight, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, PieChart, Landmark, FileText, UserCheck, Settings, LogOut, ChevronRight, ShieldCheck, MessageCircle } from 'lucide-react';
 import { User as UserType, DocumentStatus } from '../types';
 
 interface SidebarProps {
@@ -18,6 +18,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, currentView, setView, on
     { id: 'distributions', label: 'Distributions', icon: Landmark },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'accreditation', label: 'Accreditation', icon: UserCheck },
+    { id: 'support', label: 'Support', icon: MessageCircle },
   ];
 
   const userInitials = user.full_name
@@ -33,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, currentView, setView, on
     <aside className="w-64 h-screen glass-panel fixed left-0 top-0 border-r border-white/5 flex flex-col p-4 z-50">
       <div className="flex items-center gap-3 px-4 py-8 mb-4 border-b border-white/5">
         <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45"></div>
-        <span className="text-xl font-bold text-white tracking-tight">AXIS KEY</span>
+        <span className="text-xl font-bold text-white tracking-tight">DIVERSIFY</span>
       </div>
 
       <nav className="flex-1 space-y-1">

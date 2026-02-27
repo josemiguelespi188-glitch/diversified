@@ -124,9 +124,23 @@ export interface InvestmentRequest {
 export interface Distribution {
   id: string;
   deal_id: string;
+  deal_name?: string;
   user_id: string;
   amount: number;
   date: string;
   yield_percent: number;
+  type: 'monthly' | 'quarterly' | 'annual' | 'special';
   document_url?: string;
+}
+
+export interface PlatformDocument {
+  id: string;
+  deal_id?: string;
+  deal_name?: string;
+  user_id: string;
+  title: string;
+  category: 'subscription' | 'tax' | 'distribution_notice' | 'ppm' | 'legal';
+  file_name: string;
+  date: string;
+  size_kb: number;
 }
