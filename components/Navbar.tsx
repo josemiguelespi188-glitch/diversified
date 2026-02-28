@@ -1,25 +1,60 @@
-
-import React from 'react';
-import { Button } from './UIElements';
+import React, { useState, useEffect } from 'react';
+import { Button, T } from './UIElements';
 
 export const Navbar: React.FC<{ onAccess: () => void }> = ({ onAccess }) => {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b-0 py-4 px-8 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45 flex items-center justify-center">
-          <div className="w-4 h-4 bg-white/20 rounded-sm"></div>
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+      style={{
+        background: scrolled ? `${T.surface}F0` : 'transparent',
+        borderBottom: scrolled ? `1px solid ${T.border}` : '1px solid transparent',
+        backdropFilter: scrolled ? 'blur(20px)' : 'none',
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-8 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-7 h-7">
+            <div
+              className="absolute inset-0 rotate-45 rounded-sm"
+              style={{ background: T.gold }}
+            />
+            <div
+              className="absolute inset-1.5 rotate-45 rounded-sm"
+              style={{ background: T.bg }}
+            />
+          </div>
+          <span className="text-base font-black tracking-[0.15em] uppercase" style={{ color: T.text }}>
+            Diversify
+          </span>
         </div>
-        <span className="text-xl font-bold text-white tracking-tighter">DiverCfly<span className="text-[10px] align-top">TM</span></span>
-      </div>
 
-      <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#8FAEDB]">
-        <a href="#philosophy" className="hover:text-white transition-colors">Philosophy</a>
-        <a href="#how-it-works" className="hover:text-white transition-colors">Infrastructure</a>
-        <a href="#deals" className="hover:text-white transition-colors">Sponsors</a>
-        <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-      </div>
+        {/* Links */}
+        <div className="hidden md:flex items-center gap-8">
+          {['Philosophy', 'Infrastructure', 'Sponsors', 'FAQ'].map((item) => (
+            <a
+              key={item}
+              href={`#${item.toLowerCase()}`}
+              className="text-[11px] font-bold uppercase tracking-widest transition-colors duration-200 hover:text-amber-400"
+              style={{ color: T.textSub }}
+            >
+              {item}
+            </a>
+          ))}
+        </div>
 
-      <Button onClick={onAccess} className="text-xs px-4 py-2">Access Platform</Button>
+        <Button onClick={onAccess} size="sm">
+          Access Platform
+        </Button>
+      </div>
     </nav>
   );
 };

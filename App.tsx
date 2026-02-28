@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -10,128 +9,239 @@ import { Accounts } from './components/Accounts';
 import { ProfilePanel } from './components/ProfilePanel';
 import { Auth } from './components/Auth';
 import { Onboarding } from './components/Onboarding';
-import { Button, Card, Badge, SectionHeading } from './components/UIElements';
+import { Distributions } from './components/Distributions';
+import { Documents } from './components/Documents';
+import { Support } from './components/Support';
+import { Button, Badge, T } from './components/UIElements';
 import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType } from './types';
 import { MOCK_ACCOUNTS } from './constants';
-import { Globe, Shield, BarChart2, Zap } from 'lucide-react';
+import { Shield, BarChart2, Users, Zap, ArrowRight, CheckCircle } from 'lucide-react';
 
 type AppState = 'LANDING' | 'AUTH' | 'ONBOARDING' | 'PORTAL';
 
+// ─── Landing Page ─────────────────────────────────────────────────────────────
+
+const GridBg: React.FC = () => (
+  <div
+    className="absolute inset-0 pointer-events-none"
+    style={{
+      backgroundImage: `linear-gradient(${T.border}60 1px, transparent 1px), linear-gradient(90deg, ${T.border}60 1px, transparent 1px)`,
+      backgroundSize: '60px 60px',
+      maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 100%)',
+    }}
+  />
+);
+
+const GlowOrb: React.FC<{ style?: React.CSSProperties }> = ({ style }) => (
+  <div
+    className="absolute rounded-full pointer-events-none"
+    style={{ width: 700, height: 700, background: `radial-gradient(circle, ${T.gold}07 0%, transparent 70%)`, ...style }}
+  />
+);
+
+const StatPill: React.FC<{ value: string; label: string }> = ({ value, label }) => (
+  <div className="px-6 py-4 rounded-sm text-center" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+    <p className="text-2xl font-black" style={{ color: T.gold }}>{value}</p>
+    <p className="text-[9px] font-bold uppercase tracking-widest mt-1" style={{ color: T.textDim }}>{label}</p>
+  </div>
+);
+
 const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
+  const principles = [
+    { icon: Shield,   title: 'Committee-Led',        desc: 'Every deal passes a multi-stage review before reaching the platform. No exceptions.' },
+    { icon: BarChart2, title: 'Institutional Reports', desc: 'Asset-level transparency, quarterly updates, and audit-grade documentation on every position.' },
+    { icon: Users,    title: 'Aligned Capital',       desc: 'Our capital is invested alongside yours. We only succeed when you do.' },
+    { icon: Zap,      title: 'Portfolio Approach',    desc: 'Strategy, geography, and asset class diversification built into every allocation.' },
+  ];
+
+  const checklist = [
+    'Accredited investors only — U.S. & International',
+    'Minimum investments from $20,000',
+    'Institutional-grade underwriting on every deal',
+    'Full document access, zero gatekeeping',
+  ];
+
   return (
-    <div className="min-h-screen bg-[#081C3A]">
-      <style>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
+    <div className="min-h-screen relative overflow-x-hidden" style={{ background: T.bg, color: T.text }}>
       <Navbar onAccess={onStart} />
-      
-      {/* Hero */}
-      <header className="pt-40 pb-20 px-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#1457B6] rounded-full blur-[150px] opacity-20 -translate-y-1/2 translate-x-1/4"></div>
-        <div className="max-w-7xl mx-auto relative z-10 text-center lg:text-left flex flex-col lg:flex-row items-center gap-12">
-          <div className="lg:w-1/2 space-y-8">
-            <div className="flex justify-center lg:justify-start">
-              <Badge variant="info">Portfolio-first Private Capital</Badge>
-            </div>
-            <h1 className="text-5xl lg:text-7xl font-bold text-white leading-tight">
-              Institutional <br/>
-              <span className="text-[#2F80ED]">Private Capital</span> <br/>
-              Infrastructure.
-            </h1>
-            <p className="text-[#8FAEDB] text-xl max-w-xl leading-relaxed">
-              Diversify into curated real estate assets with institutional-grade underwriting and total incentive alignment.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button onClick={onStart} className="px-10 py-4 text-lg">Access the Platform</Button>
-              <Button variant="ghost" className="px-10 py-4 text-lg border border-white/5">Investment Philosophy</Button>
-            </div>
+
+      {/* ── Hero ─────────────────────────────────────────────────────── */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-16">
+        <GridBg />
+        <GlowOrb style={{ top: -200, left: '50%', transform: 'translateX(-50%)' }} />
+
+        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-10">
+          <Badge variant="gold" className="mx-auto">
+            Private Capital Infrastructure — Accredited Investors Only
+          </Badge>
+
+          <h1 className="text-5xl md:text-7xl font-black uppercase leading-none tracking-tight">
+            Institutional<br />
+            <span style={{ color: T.gold }}>Private Capital</span><br />
+            Done Right.
+          </h1>
+
+          <p className="text-base md:text-lg max-w-xl mx-auto leading-relaxed" style={{ color: T.textSub }}>
+            Diversify aggregates accredited capital to access institutional-grade real estate deals — lower minimums, better terms, complete transparency.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={onStart} size="lg">
+              Access the Platform <ArrowRight size={14} />
+            </Button>
+            <Button variant="outline" size="lg">
+              Investment Philosophy
+            </Button>
           </div>
-          <div className="lg:w-1/2">
-             <Card className="p-2 cyan-glow rotate-2 hover:rotate-0 transition-transform duration-500 overflow-hidden">
-               <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200" alt="Platform Preview" className="rounded-lg shadow-2xl opacity-80" />
-               <div className="absolute inset-0 bg-gradient-to-tr from-[#2F80ED]/20 to-transparent pointer-events-none"></div>
-             </Card>
+
+          <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto pt-4">
+            <StatPill value="$2.1B+" label="Capital Deployed" />
+            <StatPill value="38" label="Active Deals" />
+            <StatPill value="14.2%" label="Avg. IRR" />
           </div>
         </div>
-      </header>
 
-      {/* Philosophy Section */}
-      <section id="philosophy" className="py-32 px-8">
-        <div className="max-w-7xl mx-auto">
-          <SectionHeading 
-            title="Institutional Discipline" 
-            subtitle="We don't believe in individual 'deal picking'. We build resilient, diversified capital portfolios through rigorous committee oversight."
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
-            {[
-              { title: 'Diversification', desc: 'Strategy, Geography, and Asset Class spread across all allocations.', icon: Globe },
-              { title: 'Alignment', desc: 'Our capital is invested alongside yours. We succeed only when you do.', icon: Shield },
-              { title: 'Transparency', desc: 'Institutional reporting standards. Full access to asset-level data.', icon: BarChart2 },
-              { title: 'Committee-Led', desc: 'Strict multi-stage review for every single opportunity on the platform.', icon: Zap },
-            ].map((item, i) => (
-              <Card key={i} className="space-y-4 hover:border-[#2F80ED]/50 transition-colors group">
-                <div className="w-12 h-12 rounded bg-[#2F80ED]/10 flex items-center justify-center text-[#2F80ED] group-hover:cyan-glow transition-all">
-                  <item.icon size={24} />
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
+          <div className="w-px h-12 animate-pulse" style={{ background: `linear-gradient(to bottom, ${T.gold}60, transparent)` }} />
+        </div>
+      </section>
+
+      {/* ── Philosophy ───────────────────────────────────────────────── */}
+      <section id="philosophy" className="py-32 px-6 relative">
+        <GlowOrb style={{ bottom: -200, right: -300, opacity: 0.5 }} />
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-px" style={{ background: T.gold }} />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: T.gold }}>Our Philosophy</p>
+          </div>
+          <h2 className="text-4xl font-black uppercase mb-4" style={{ color: T.text }}>Institutional Discipline</h2>
+          <p className="text-base mb-16 max-w-xl" style={{ color: T.textSub }}>
+            We don't believe in picking individual deals. We build resilient, diversified capital portfolios through rigorous committee oversight.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {principles.map((p) => (
+              <div
+                key={p.title}
+                className="p-6 rounded-sm group transition-all duration-300 space-y-4"
+                style={{ background: T.surface, border: `1px solid ${T.border}` }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}40`; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; }}
+              >
+                <div className="w-10 h-10 rounded-sm flex items-center justify-center" style={{ background: T.goldFaint, border: `1px solid ${T.gold}30` }}>
+                  <p.icon size={18} style={{ color: T.gold }} />
                 </div>
-                <h3 className="text-lg font-bold text-white uppercase tracking-wider">{item.title}</h3>
-                <p className="text-sm text-[#8FAEDB] leading-relaxed">{item.desc}</p>
-              </Card>
+                <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: T.text }}>{p.title}</h3>
+                <p className="text-xs leading-relaxed" style={{ color: T.textSub }}>{p.desc}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-20 px-8 border-t border-white/5 bg-black/40">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
-          <div className="space-y-6 col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#2F80ED] rounded rotate-45"></div>
-              <span className="text-xl font-bold text-white">DiverCfly</span>
+      {/* ── CTA ──────────────────────────────────────────────────────── */}
+      <section className="py-32 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div
+            className="rounded-md p-12 md:p-20 text-center space-y-8 relative overflow-hidden"
+            style={{ background: T.surface, border: `1px solid ${T.border}` }}
+          >
+            <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse 60% 40% at 50% 100%, ${T.gold}05 0%, transparent 70%)` }} />
+            <div className="relative z-10 space-y-8">
+              <Badge variant="gold" className="mx-auto">Accredited Investors Only</Badge>
+              <h2 className="text-4xl font-black uppercase" style={{ color: T.text }}>
+                Ready for <span style={{ color: T.gold }}>Institutional Capital</span>?
+              </h2>
+              <ul className="space-y-2 text-left max-w-xs mx-auto">
+                {checklist.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <CheckCircle size={14} style={{ color: T.jade, marginTop: 2, flexShrink: 0 }} />
+                    <span className="text-xs" style={{ color: T.textSub }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button onClick={onStart} size="lg" className="mx-auto">
+                Get Access <ArrowRight size={14} />
+              </Button>
             </div>
-            <p className="text-sm text-[#8FAEDB] max-w-sm">
-              DiverCfly™ is a private platform for accredited investors. We provide the infrastructure to build and manage sophisticated private equity portfolios.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <h4 className="text-white font-bold uppercase tracking-widest text-xs">Compliance</h4>
-            <nav className="flex flex-col gap-2 text-sm text-[#8FAEDB]">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Accreditation Notice</a>
-              <a href="#" className="hover:text-white transition-colors">Risk Disclosures</a>
-            </nav>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-white/5 text-[10px] text-[#8FAEDB]/50 uppercase tracking-[0.2em]">
-          &copy; 2024 DIVERCFLY INFRASTRUCTURE. ALL RIGHTS RESERVED. NOT INVESTMENT ADVICE. ACCREDITED INVESTORS ONLY.
+      </section>
+
+      {/* ── Footer ───────────────────────────────────────────────────── */}
+      <footer className="py-16 px-6" style={{ borderTop: `1px solid ${T.border}` }}>
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start justify-between gap-10">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-6 h-6">
+                <div className="absolute inset-0 rotate-45 rounded-sm" style={{ background: T.gold }} />
+                <div className="absolute inset-1 rotate-45 rounded-sm" style={{ background: T.bg }} />
+              </div>
+              <span className="text-sm font-black tracking-[0.18em] uppercase" style={{ color: T.text }}>Diversify</span>
+            </div>
+            <p className="text-xs max-w-xs leading-relaxed" style={{ color: T.textDim }}>
+              DIVERSIFY™ aggregates accredited capital to negotiate institutional-grade real estate deals — lower minimums, better terms, full transparency.
+            </p>
+          </div>
+
+          <div className="flex gap-16">
+            {[
+              { heading: 'Compliance', links: ['Privacy Policy', 'Accreditation Notice', 'Risk Disclosures'] },
+              { heading: 'Platform',   links: ['How It Works', 'Sponsors', 'Deals'] },
+            ].map((col) => (
+              <div key={col.heading} className="space-y-4">
+                <h4 className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: T.textDim }}>{col.heading}</h4>
+                <nav className="space-y-2.5">
+                  {col.links.map((link) => (
+                    <a key={link} href="#" className="block text-xs transition-colors hover:text-amber-400" style={{ color: T.textSub }}>{link}</a>
+                  ))}
+                </nav>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto mt-12 pt-8 text-center text-[9px] uppercase tracking-[0.3em]" style={{ borderTop: `1px solid ${T.border}`, color: T.textDim }}>
+          © 2025 DIVERSIFY CAPITAL. ALL RIGHTS RESERVED. NOT INVESTMENT ADVICE. ACCREDITED INVESTORS ONLY.
         </div>
       </footer>
     </div>
   );
 };
 
-const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: Partial<User>) => void }> = ({ user, onLogout, onUpdateUser }) => {
-  const [currentView, setView] = useState('dashboard'); 
+// ─── Portal Shell ─────────────────────────────────────────────────────────────
+
+const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="text-center p-16 rounded-md max-w-md" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+      <div className="w-12 h-12 rounded-sm flex items-center justify-center mx-auto mb-6" style={{ background: T.raised, border: `1px solid ${T.border}` }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={T.textDim} strokeWidth="1.5">
+          <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </div>
+      <h2 className="text-sm font-black uppercase tracking-widest mb-3" style={{ color: T.text }}>Settings</h2>
+      <p className="text-xs mb-8" style={{ color: T.textSub }}>Account settings infrastructure coming soon.</p>
+      <Button onClick={onBack} variant="outline">Return to Dashboard</Button>
+    </div>
+  </div>
+);
+
+const Portal: React.FC<{ user: User; onLogout: () => void; onUpdateUser: (data: Partial<User>) => void }> = ({ user, onLogout, onUpdateUser }) => {
+  const [currentView, setView] = useState('dashboard');
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [requests, setRequests] = useState<InvestmentRequest[]>([]);
   const [accounts, setAccounts] = useState<InvestmentAccount[]>(MOCK_ACCOUNTS);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const handleAllocate = (deal: Deal) => {
-    setSelectedDeal(deal);
-  };
-
-  const handleInvestmentSubmit = (data: any) => {
+  const handleInvestmentSubmit = (data: { dealId: string; dealName: string; accountId: string; amount: number; status: string }) => {
     const newRequest: InvestmentRequest = {
-      id: 'REQ_' + Math.random().toString(36).substr(2, 9),
+      id: 'REQ_' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       user_id: user.id,
       deal_id: data.dealId,
       deal_name: data.dealName,
       account_id: data.accountId,
       amount: data.amount,
       status: data.status,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
     setRequests([newRequest, ...requests]);
   };
@@ -143,126 +253,70 @@ const Portal: React.FC<{ user: User, onLogout: () => void, onUpdateUser: (data: 
       type: data.type || InvestmentAccountType.INDIVIDUAL,
       display_name: data.display_name || 'New Ledger',
       created_at: new Date().toISOString(),
-      ...data
+      ...data,
     };
     setAccounts([...accounts, newAccount]);
   };
 
   return (
-    <div className="min-h-screen bg-[#081C3A] flex">
-      <Sidebar 
-        user={user} 
-        currentView={currentView} 
-        setView={setView} 
-        onLogout={onLogout} 
-        onOpenProfile={() => setIsProfileOpen(true)}
-      />
-      <main className="flex-1 ml-64 p-8 overflow-y-auto">
-        {currentView === 'dashboard' && (
-          <Dashboard 
-            onAllocate={handleAllocate} 
-            onViewPortfolio={() => setView('portfolio')}
-            requests={requests}
-          />
-        )}
-        {currentView === 'portfolio' && (
-          <Portfolio onAllocate={handleAllocate} />
-        )}
-        {currentView === 'accounts' && (
-          <Accounts 
-            user={user} 
-            accounts={accounts} 
-            onAddAccount={handleAddAccount}
-            onNavigateToAccreditation={() => setView('accreditation')}
-          />
-        )}
-        {currentView === 'accreditation' && (
-          <Accreditation user={user} accounts={accounts} />
-        )}
-        
-        {['distributions', 'documents', 'settings'].includes(currentView) && (
-          <div className="flex items-center justify-center h-full">
-            <Card className="text-center p-20 max-w-lg border-white/5">
-              <h2 className="text-2xl font-bold text-white uppercase mb-4">{currentView} Module</h2>
-              <p className="text-[#8FAEDB] text-sm uppercase tracking-widest leading-relaxed">Infrastructure under maintenance. Your ledger data remains encrypted and secure.</p>
-              <Button onClick={() => setView('dashboard')} variant="outline" className="mt-8">Return to Dashboard</Button>
-            </Card>
-          </div>
-        )}
+    <div className="min-h-screen flex" style={{ background: T.bg }}>
+      <Sidebar user={user} currentView={currentView} setView={setView} onLogout={onLogout} onOpenProfile={() => setIsProfileOpen(true)} />
+
+      <main className="flex-1 ml-56 p-8 overflow-y-auto min-h-screen">
+        {currentView === 'dashboard'      && <Dashboard onAllocate={setSelectedDeal} onViewPortfolio={() => setView('portfolio')} requests={requests} />}
+        {currentView === 'portfolio'      && <Portfolio onAllocate={setSelectedDeal} />}
+        {currentView === 'accounts'       && <Accounts user={user} accounts={accounts} onAddAccount={handleAddAccount} onNavigateToAccreditation={() => setView('accreditation')} />}
+        {currentView === 'accreditation'  && <Accreditation user={user} accounts={accounts} />}
+        {currentView === 'distributions'  && <Distributions />}
+        {currentView === 'documents'      && <Documents />}
+        {currentView === 'support'        && <Support />}
+        {currentView === 'settings'       && <SettingsView onBack={() => setView('dashboard')} />}
       </main>
 
       {selectedDeal && (
-        <InvestmentModal 
-          deal={selectedDeal} 
-          onClose={() => setSelectedDeal(null)} 
+        <InvestmentModal
+          deal={selectedDeal}
+          onClose={() => setSelectedDeal(null)}
           onSubmit={handleInvestmentSubmit}
-          onComplete={() => {
-            setSelectedDeal(null);
-            setView('dashboard');
-          }}
+          onComplete={() => { setSelectedDeal(null); setView('dashboard'); }}
           userFullName={user.full_name}
         />
       )}
 
-      <ProfilePanel 
-        user={user} 
-        isOpen={isProfileOpen} 
-        onClose={() => setIsProfileOpen(false)} 
-        onUpdate={onUpdateUser}
-      />
+      <ProfilePanel user={user} isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onUpdate={onUpdateUser} />
 
-      {/* Support Orb */}
-      <div className="fixed bottom-8 right-8 z-40">
-        <button className="w-14 h-14 bg-[#2F80ED] rounded-full flex items-center justify-center text-white cyan-glow hover:scale-110 transition-all border border-white/10">
-           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-           </svg>
-        </button>
-      </div>
+      {/* Support FAB */}
+      <button
+        onClick={() => setView('support')}
+        title="Support"
+        className="fixed bottom-6 right-6 z-40 w-11 h-11 rounded-sm flex items-center justify-center transition-all hover:scale-105"
+        style={{ background: T.gold, color: '#000', boxShadow: `0 0 20px ${T.gold}40` }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </button>
     </div>
   );
 };
+
+// ─── Root ─────────────────────────────────────────────────────────────────────
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('LANDING');
   const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [appState]);
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [appState]);
 
   const handleLoginSuccess = (userData: User) => {
     setUser(userData);
-    if (userData.onboarded) {
-      setAppState('PORTAL');
-    } else {
-      setAppState('ONBOARDING');
-    }
+    setAppState(userData.onboarded ? 'PORTAL' : 'ONBOARDING');
   };
 
-  const handleOnboardingComplete = () => {
-    if (user) {
-      setUser({ ...user, onboarded: true });
-      setAppState('PORTAL');
-    }
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setAppState('LANDING');
-  };
-
-  const handleUpdateUser = (data: Partial<User>) => {
-    if (user) {
-      setUser({ ...user, ...data });
-    }
-  };
-
-  if (appState === 'LANDING') return <LandingPage onStart={() => setAppState('AUTH')} />;
-  if (appState === 'AUTH') return <Auth onSuccess={handleLoginSuccess} onBack={() => setAppState('LANDING')} />;
-  if (appState === 'ONBOARDING' && user) return <Onboarding user={user} onComplete={handleOnboardingComplete} />;
-  if (appState === 'PORTAL' && user) return <Portal user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} />;
-
+  if (appState === 'LANDING')    return <LandingPage onStart={() => setAppState('AUTH')} />;
+  if (appState === 'AUTH')       return <Auth onSuccess={handleLoginSuccess} onBack={() => setAppState('LANDING')} />;
+  if (appState === 'ONBOARDING' && user) return <Onboarding user={user} onComplete={() => { setUser({ ...user, onboarded: true }); setAppState('PORTAL'); }} />;
+  if (appState === 'PORTAL' && user)     return <Portal user={user} onLogout={() => { setUser(null); setAppState('LANDING'); }} onUpdateUser={(d) => setUser({ ...user!, ...d })} />;
   return null;
 };
 
