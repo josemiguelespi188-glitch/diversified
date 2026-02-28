@@ -1,192 +1,172 @@
-
 import React, { useState, useMemo } from 'react';
-import { Card, Badge } from './UIElements';
+import { Card, Badge, T } from './UIElements';
 import { PlatformDocument } from '../types';
 import { MOCK_DOCUMENTS } from '../constants';
-import {
-  Download,
-  FileText,
-  ShieldCheck,
-  Receipt,
-  Landmark,
-  Gavel,
-  Search,
-  File
-} from 'lucide-react';
+import { Download, FileText, ShieldCheck, Receipt, Landmark, Gavel, Search, File } from 'lucide-react';
 
 type CategoryFilter = 'all' | 'subscription' | 'ppm' | 'distribution_notice' | 'tax' | 'legal';
 
-const CATEGORY_META: Record<string, { label: string; icon: React.FC<any>; color: string }> = {
-  subscription: { label: 'Subscription Agreements', icon: FileText, color: '#2F80ED' },
-  ppm: { label: 'PPM / Offering Docs', icon: Landmark, color: '#56CCF2' },
-  distribution_notice: { label: 'Distribution Notices', icon: Receipt, color: '#00E0C6' },
-  tax: { label: 'Tax Documents', icon: ShieldCheck, color: '#F59E0B' },
-  legal: { label: 'Legal & Compliance', icon: Gavel, color: '#8FAEDB' }
+const CATEGORY_META: Record<string, { label: string; icon: React.FC<{ size?: number }>; color: string }> = {
+  subscription:       { label: 'Subscription Agreements', icon: FileText,   color: T.gold },
+  ppm:                { label: 'Offering Docs / PPM',     icon: Landmark,   color: T.sky },
+  distribution_notice:{ label: 'Distribution Notices',   icon: Receipt,    color: T.jade },
+  tax:                { label: 'Tax Documents',           icon: ShieldCheck, color: '#A78BFA' },
+  legal:              { label: 'Legal & Compliance',      icon: Gavel,      color: T.textSub },
 };
 
-const formatKb = (kb: number) =>
-  kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
+const fmtKb = (kb: number) => (kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`);
 
 export const Documents: React.FC = () => {
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const [cat, setCat] = useState<CategoryFilter>('all');
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
-    let docs = categoryFilter === 'all'
-      ? MOCK_DOCUMENTS
-      : MOCK_DOCUMENTS.filter(d => d.category === categoryFilter);
+    let docs = cat === 'all' ? MOCK_DOCUMENTS : MOCK_DOCUMENTS.filter((d) => d.category === cat);
     if (query.trim()) {
       const q = query.toLowerCase();
-      docs = docs.filter(d =>
+      docs = docs.filter((d) =>
         d.title.toLowerCase().includes(q) ||
         (d.deal_name || '').toLowerCase().includes(q) ||
-        d.file_name.toLowerCase().includes(q)
+        d.file_name.toLowerCase().includes(q),
       );
     }
     return docs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [categoryFilter, query]);
+  }, [cat, query]);
 
-  // Group by category for the "all" view
   const grouped = useMemo(() => {
     const map: Record<string, PlatformDocument[]> = {};
-    filtered.forEach(d => {
-      if (!map[d.category]) map[d.category] = [];
-      map[d.category].push(d);
-    });
+    filtered.forEach((d) => { if (!map[d.category]) map[d.category] = []; map[d.category].push(d); });
     return map;
   }, [filtered]);
 
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    MOCK_DOCUMENTS.forEach(d => {
-      counts[d.category] = (counts[d.category] || 0) + 1;
-    });
-    return counts;
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {};
+    MOCK_DOCUMENTS.forEach((d) => { c[d.category] = (c[d.category] || 0) + 1; });
+    return c;
   }, []);
 
-  const filterTabs: { key: CategoryFilter; label: string }[] = [
+  const tabs: { key: CategoryFilter; label: string }[] = [
     { key: 'all', label: `All (${MOCK_DOCUMENTS.length})` },
-    ...Object.entries(CATEGORY_META).map(([k, v]) => ({
-      key: k as CategoryFilter,
-      label: `${v.label} (${categoryCounts[k] || 0})`
-    }))
+    ...Object.entries(CATEGORY_META).map(([k, v]) => ({ key: k as CategoryFilter, label: `${v.label} (${counts[k] || 0})` })),
   ];
 
-  const renderDocRow = (doc: PlatformDocument) => {
+  const renderDoc = (doc: PlatformDocument) => {
     const meta = CATEGORY_META[doc.category];
     const Icon = meta?.icon || File;
     return (
       <div
         key={doc.id}
-        className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all group"
+        className="flex items-center justify-between p-4 rounded-sm transition-all group"
+        style={{ background: T.surface, border: `1px solid ${T.border}` }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}30`; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; }}
       >
-        <div className="flex items-center gap-4 overflow-hidden">
+        <div className="flex items-center gap-3 overflow-hidden">
           <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: (meta?.color || '#8FAEDB') + '15', border: `1px solid ${(meta?.color || '#8FAEDB')}30` }}
+            className="w-9 h-9 rounded-sm flex items-center justify-center flex-shrink-0"
+            style={{ background: `${meta?.color || T.textSub}15`, border: `1px solid ${meta?.color || T.textSub}30` }}
           >
-            <Icon size={18} style={{ color: meta?.color || '#8FAEDB' }} />
+            <Icon size={15} style={{ color: meta?.color || T.textSub }} />
           </div>
           <div className="overflow-hidden">
-            <p className="text-sm font-bold text-white uppercase tracking-tight truncate">{doc.title}</p>
+            <p className="text-xs font-black uppercase tracking-wide truncate" style={{ color: T.text }}>{doc.title}</p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              {doc.deal_name && (
-                <span className="text-[9px] text-[#2F80ED] font-bold uppercase tracking-widest">{doc.deal_name}</span>
-              )}
-              {doc.deal_name && <span className="text-[#8FAEDB]/30 text-[9px]">•</span>}
-              <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest opacity-60">
-                {new Date(doc.date).toLocaleDateString()}
-              </span>
-              <span className="text-[#8FAEDB]/30 text-[9px]">•</span>
-              <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest opacity-40">
-                {formatKb(doc.size_kb)}
-              </span>
+              {doc.deal_name && <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: T.gold }}>{doc.deal_name}</span>}
+              {doc.deal_name && <span style={{ color: T.textDim }}>·</span>}
+              <span className="text-[9px]" style={{ color: T.textDim }}>{new Date(doc.date).toLocaleDateString()}</span>
+              <span style={{ color: T.textDim }}>·</span>
+              <span className="text-[9px]" style={{ color: T.textDim }}>{fmtKb(doc.size_kb)}</span>
             </div>
           </div>
         </div>
         <button
-          className="shrink-0 ml-4 p-2 rounded-lg border border-white/10 text-[#8FAEDB] hover:text-[#2F80ED] hover:border-[#2F80ED]/40 transition-all"
+          className="flex-shrink-0 ml-4 w-8 h-8 rounded-sm flex items-center justify-center transition-all"
+          style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.textDim }}
           title={`Download ${doc.file_name}`}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}60`; e.currentTarget.style.color = T.gold; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.textDim; }}
         >
-          <Download size={16} />
+          <Download size={13} />
         </button>
       </div>
     );
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-      <header className="flex flex-col lg:flex-row justify-between items-start gap-4">
+    <div className="space-y-8 pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-1 uppercase tracking-tight">Documents</h1>
-          <p className="text-[#8FAEDB] text-sm uppercase tracking-widest font-medium opacity-60">
-            Legal, tax & deal documentation vault
-          </p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style={{ color: T.gold }}>Vault</p>
+          <h1 className="text-2xl font-black uppercase tracking-tight" style={{ color: T.text }}>Documents</h1>
         </div>
-        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 w-full lg:w-64">
-          <Search size={14} className="text-[#8FAEDB] shrink-0" />
+        {/* Search */}
+        <div
+          className="flex items-center gap-2 px-4 py-2.5 rounded-sm w-full md:w-64"
+          style={{ background: T.raised, border: `1px solid ${T.border}` }}
+        >
+          <Search size={13} style={{ color: T.textDim, flexShrink: 0 }} />
           <input
             type="text"
-            placeholder="Search documents..."
+            placeholder="Search documents…"
             value={query}
-            onChange={e => setQuery(e.target.value)}
-            className="bg-transparent text-white text-sm w-full outline-none placeholder:text-[#8FAEDB]/40 placeholder:text-[11px]"
+            onChange={(e) => setQuery(e.target.value)}
+            className="bg-transparent text-sm w-full outline-none"
+            style={{ color: T.text }}
           />
         </div>
-      </header>
+      </div>
 
-      {/* Category Filter Tabs */}
-      <div className="flex flex-wrap gap-2">
-        {filterTabs.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setCategoryFilter(tab.key)}
-            className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
-              categoryFilter === tab.key
-                ? 'bg-[#2F80ED] text-white shadow-lg shadow-[#2F80ED]/20'
-                : 'bg-white/5 text-[#8FAEDB] hover:text-white border border-white/5'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Category Tabs */}
+      <div className="flex flex-wrap gap-1.5">
+        {tabs.map((tab) => {
+          const active = cat === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setCat(tab.key)}
+              className="px-3 py-1.5 rounded-sm text-[9px] font-black uppercase tracking-widest transition-all"
+              style={{
+                background: active ? T.gold : T.raised,
+                color: active ? '#000' : T.textDim,
+                border: `1px solid ${active ? T.gold : T.border}`,
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {filtered.length === 0 ? (
-        <Card className="text-center py-20 border-white/5">
-          <File size={40} className="mx-auto text-[#8FAEDB]/20 mb-4" />
-          <p className="text-[10px] text-[#8FAEDB]/40 uppercase tracking-widest">No documents found</p>
-        </Card>
-      ) : categoryFilter === 'all' ? (
-        // Grouped view
+        <div
+          className="flex flex-col items-center justify-center py-24 text-center rounded-sm"
+          style={{ background: T.surface, border: `1px solid ${T.border}` }}
+        >
+          <File size={28} style={{ color: T.textDim, marginBottom: 12 }} />
+          <p className="text-[10px] uppercase tracking-widest" style={{ color: T.textDim }}>No documents found</p>
+        </div>
+      ) : cat === 'all' ? (
         <div className="space-y-8">
           {(Object.entries(grouped) as [string, PlatformDocument[]][]).map(([category, docs]) => {
             const meta = CATEGORY_META[category];
             const Icon = meta?.icon || File;
             return (
-              <section key={category} className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Icon size={16} style={{ color: meta?.color || '#8FAEDB' }} />
-                  <h2
-                    className="text-xs font-bold uppercase tracking-[0.2em]"
-                    style={{ color: meta?.color || '#8FAEDB' }}
-                  >
+              <section key={category} className="space-y-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <Icon size={12} style={{ color: meta?.color || T.textSub }} />
+                  <h2 className="text-[10px] font-black uppercase tracking-widest" style={{ color: meta?.color || T.textSub }}>
                     {meta?.label || category}
                   </h2>
-                  <span className="text-[9px] text-[#8FAEDB]/40 font-bold">({docs.length})</span>
+                  <span className="text-[9px]" style={{ color: T.textDim }}>({docs.length})</span>
                 </div>
-                <div className="space-y-2">
-                  {docs.map(renderDocRow)}
-                </div>
+                {docs.map(renderDoc)}
               </section>
             );
           })}
         </div>
       ) : (
-        // Flat view for single category
-        <div className="space-y-2">
-          {filtered.map(renderDocRow)}
-        </div>
+        <div className="space-y-2">{filtered.map(renderDoc)}</div>
       )}
     </div>
   );

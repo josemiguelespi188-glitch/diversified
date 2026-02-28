@@ -1,442 +1,383 @@
-
 import React, { useState } from 'react';
-import { Deal, InvestmentAccountType, RequestStatus, DocumentStatus } from '../types';
+import { Deal, RequestStatus } from '../types';
 import { MOCK_ACCOUNTS } from '../constants';
-import { Card, Button, Badge } from './UIElements';
-// Added ChevronDown to imports to fix "Cannot find name 'ChevronDown'" errors
-import { X, CheckCircle2, ChevronRight, ChevronDown, Landmark, FileText, CreditCard, Shield, AlertTriangle, Building2, Copy, Info } from 'lucide-react';
+import { Button, Badge, T } from './UIElements';
+import { Landmark, FileText, CreditCard, Shield, AlertTriangle, Building2, Copy, Info, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 interface InvestmentModalProps {
   deal: Deal;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: { dealId: string; dealName: string; accountId: string; amount: number; status: string }) => void;
   onComplete?: () => void;
   userFullName?: string;
 }
 
 type FundingMethod = 'WIRE' | 'ACH' | 'CC' | 'IRA';
 
-export const InvestmentModal: React.FC<InvestmentModalProps> = ({ deal, onClose, onSubmit, onComplete, userFullName = "Alexander Vanderbilt" }) => {
+const STEPS = ['Account', 'Amount', 'Disclosure', 'Funding', 'Confirm'];
+
+export const InvestmentModal: React.FC<InvestmentModalProps> = ({
+  deal,
+  onClose,
+  onSubmit,
+  onComplete,
+  userFullName = 'Investor',
+}) => {
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState(deal.minimum_investment);
   const [account, setAccount] = useState(MOCK_ACCOUNTS[0].id);
   const [fundingMethod, setFundingMethod] = useState<FundingMethod | null>(null);
-  const [iraAcknowledged, setIraAcknowledged] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [iraAck, setIraAck] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Simulated Verification Check (MVP logic)
-  const isAccountVerified = (accountId: string) => {
-    return accountId === 'acc_ind'; 
-  };
+  const isVerified = (id: string) => id === 'acc_ind';
 
   const handleNext = () => {
-    if (step === 1 && !isAccountVerified(account)) {
-      setStep(99); // Error state
-      return;
-    }
-    setStep(s => s + 1);
+    if (step === 1 && !isVerified(account)) { setStep(99); return; }
+    setStep((s) => s + 1);
   };
-
-  const handleBack = () => setStep(s => s - 1);
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    // Institutional simulation delay
-    await new Promise(r => setTimeout(r, 2000));
-    onSubmit({ 
-      dealId: deal.id, 
-      dealName: deal.title,
-      amount, 
-      accountId: account,
-      status: 'Pending Funding'
-    });
+    setSubmitting(true);
+    await new Promise((r) => setTimeout(r, 1800));
+    onSubmit({ dealId: deal.id, dealName: deal.title, accountId: account, amount, status: RequestStatus.PENDING_FUNDING });
     setStep(5);
-    setIsSubmitting(false);
+    setSubmitting(false);
   };
 
-  const steps = [
-    { id: 1, label: 'Investing Account' },
-    { id: 2, label: 'Allocation' },
-    { id: 3, label: 'Disclosure' },
-    { id: 4, label: 'Funding' },
-    { id: 5, label: 'Confirmation' },
-  ];
-
-  const canConfirmFunding = fundingMethod && (fundingMethod !== 'IRA' || iraAcknowledged) && !isSubmitting;
+  const canFund = fundingMethod && (fundingMethod !== 'IRA' || iraAck) && !submitting;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#081C3A]/95 backdrop-blur-md" onClick={onClose}></div>
-      
-      <Card className="relative w-full max-w-xl p-0 overflow-hidden animate-in fade-in zoom-in-95 duration-200 border-[#2F80ED]/20 shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#0F2A4A]/50 shrink-0">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      style={{ background: 'rgba(7,8,12,0.9)', backdropFilter: 'blur(12px)' }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="w-full max-w-lg rounded-md overflow-hidden flex flex-col max-h-[90vh]"
+        style={{ background: T.surface, border: `1px solid ${T.border}` }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: `1px solid ${T.border}` }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded bg-[#2F80ED]/10 flex items-center justify-center text-[#2F80ED] border border-[#2F80ED]/20">
-              <Landmark size={20} />
+            <div className="w-8 h-8 rounded-sm flex items-center justify-center" style={{ background: T.goldFaint, border: `1px solid ${T.gold}30` }}>
+              <Landmark size={16} style={{ color: T.gold }} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight uppercase">Capital Allocation</h2>
-              <p className="text-xs text-[#8FAEDB]">{deal.title} • <span className="text-[#2F80ED]">{deal.strategy}</span></p>
+              <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.text }}>Capital Allocation</p>
+              <p className="text-[9px] mt-0.5" style={{ color: T.textDim }}>{deal.title} · {deal.strategy}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-[#8FAEDB] hover:text-white transition-colors p-2">
-            <X size={20} />
-          </button>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-sm transition-colors hover:bg-white/5" style={{ color: T.textDim }}>×</button>
         </div>
 
-        {/* Progress Bar (Hidden in error state) */}
+        {/* Progress steps */}
         {step !== 99 && (
-          <div className="flex border-b border-white/5 shrink-0">
-            {steps.map((s) => (
-              <div key={s.id} className="flex-1 h-1 relative">
-                <div className={`absolute inset-0 transition-all duration-500 ${step >= s.id ? 'bg-[#2F80ED] cyan-glow' : 'bg-white/5'}`}></div>
-              </div>
+          <div className="flex flex-shrink-0" style={{ borderBottom: `1px solid ${T.border}` }}>
+            {STEPS.map((s, i) => (
+              <div
+                key={s}
+                className="flex-1 h-0.5 transition-all duration-500"
+                style={{ background: step > i ? T.gold : step === i + 1 ? T.goldDim : T.border }}
+              />
             ))}
           </div>
         )}
 
-        <div className="p-8 overflow-y-auto">
+        <div className="p-7 overflow-y-auto flex-1">
+
+          {/* ── Step 99: Accreditation Error ──────────────────────────── */}
           {step === 99 && (
-            <div className="py-8 text-center space-y-6 animate-in fade-in zoom-in-95">
-              <div className="flex justify-center">
-                <div className="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500 border border-yellow-500/20">
-                  <AlertTriangle size={40} />
-                </div>
+            <div className="py-8 text-center space-y-5">
+              <div className="w-16 h-16 rounded-sm flex items-center justify-center mx-auto" style={{ background: T.goldFaint, border: `1px solid ${T.gold}40` }}>
+                <AlertTriangle size={28} style={{ color: T.gold }} />
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white uppercase tracking-tight mb-2">Accreditation Required</h2>
-                <p className="text-[#8FAEDB] text-sm max-w-sm mx-auto leading-relaxed">
-                  Your selected account (<span className="text-white font-bold">{MOCK_ACCOUNTS.find(a => a.id === account)?.display_name}</span>) is not fully verified. Institutional compliance requires full verification before allocation requests.
-                </p>
-              </div>
-              <div className="pt-6 flex flex-col gap-3">
-                <Button onClick={onClose} variant="primary" className="w-full py-4 text-sm">Complete Accreditation</Button>
-                <button onClick={() => setStep(1)} className="text-[10px] text-[#8FAEDB] uppercase tracking-widest font-bold hover:text-white">Change Investing Account</button>
+              <h3 className="text-sm font-black uppercase tracking-widest" style={{ color: T.text }}>Accreditation Required</h3>
+              <p className="text-xs leading-relaxed" style={{ color: T.textSub }}>
+                The selected account (<strong style={{ color: T.text }}>{MOCK_ACCOUNTS.find((a) => a.id === account)?.display_name}</strong>) is not fully verified. Please complete verification before making allocations.
+              </p>
+              <div className="space-y-2 pt-2">
+                <Button onClick={onClose} className="w-full" size="lg">Complete Accreditation</Button>
+                <button onClick={() => setStep(1)} className="w-full text-[10px] font-black uppercase tracking-widest transition-colors hover:text-amber-400" style={{ color: T.textDim }}>
+                  Change Account
+                </button>
               </div>
             </div>
           )}
 
+          {/* ── Step 1: Account ───────────────────────────────────────── */}
           {step === 1 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <label className="text-[10px] font-bold text-[#8FAEDB] uppercase tracking-[0.2em]">Step 1: Select Investing Account</label>
-              <div className="grid grid-cols-1 gap-3">
-                {MOCK_ACCOUNTS.map(acc => (
-                  <button
-                    key={acc.id}
-                    onClick={() => setAccount(acc.id)}
-                    className={`p-5 rounded-lg border text-left transition-all group ${
-                      account === acc.id 
-                        ? 'border-[#2F80ED] bg-[#2F80ED]/5 text-white ring-1 ring-[#2F80ED]/50' 
-                        : 'border-white/5 bg-white/5 text-[#8FAEDB] hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-bold uppercase tracking-wider block">{acc.display_name}</span>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">ID: {acc.id}</span>
-                          {!isAccountVerified(acc.id) && <span className="text-[8px] bg-yellow-500/10 text-yellow-500 px-1.5 py-0.5 rounded border border-yellow-500/20 uppercase font-bold">Unverified</span>}
+            <div className="space-y-5">
+              <StepLabel n={1} text="Select Investing Account" />
+              <div className="space-y-2">
+                {MOCK_ACCOUNTS.map((acc) => {
+                  const active = account === acc.id;
+                  const verified = isVerified(acc.id);
+                  return (
+                    <button
+                      key={acc.id}
+                      onClick={() => setAccount(acc.id)}
+                      className="w-full p-4 rounded-sm text-left transition-all"
+                      style={{
+                        background: active ? T.goldFaint : T.raised,
+                        border: `1px solid ${active ? T.gold : T.border}`,
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wide" style={{ color: T.text }}>{acc.display_name}</p>
+                          <p className="text-[9px] mt-0.5 uppercase tracking-widest" style={{ color: T.textDim }}>ID: {acc.id}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!verified && <Badge variant="gold">Unverified</Badge>}
+                          <Badge variant="neutral">{acc.type}</Badge>
                         </div>
                       </div>
-                      <Badge variant="info">{acc.type}</Badge>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
-              <Button onClick={handleNext} className="w-full py-4 text-sm">Proceed to Allocation Amount <ChevronRight size={16} className="inline ml-1"/></Button>
+              <Button onClick={handleNext} className="w-full" size="lg">Continue →</Button>
             </div>
           )}
 
+          {/* ── Step 2: Amount ────────────────────────────────────────── */}
           {step === 2 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div className="space-y-4">
-                <label className="text-[10px] font-bold text-[#8FAEDB] uppercase tracking-[0.2em]">Step 2: Enter Allocation Amount</label>
-                <div className="relative group">
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-[#2F80ED] font-bold text-3xl">$</span>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-full bg-[#081C3A] border border-white/10 rounded-lg py-6 pl-12 pr-6 text-4xl font-bold text-white outline-none focus:border-[#2F80ED] focus:ring-1 focus:ring-[#2F80ED]/50 transition-all"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-white/5 border border-white/5">
-                  <div className="space-y-1">
-                    <span className="text-[9px] uppercase text-[#8FAEDB] tracking-widest font-bold block">Est. Annual Yield</span>
-                    <span className="text-xl font-bold text-[#00E0C6]">${(amount * (deal.cash_yield / 100)).toLocaleString()}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[9px] uppercase text-[#8FAEDB] tracking-widest font-bold block">Target IRR</span>
-                    <span className="text-xl font-bold text-[#2F80ED]">{deal.projected_irr}%</span>
-                  </div>
-                </div>
-                <div className="text-[9px] text-[#8FAEDB] uppercase tracking-[0.15em] font-bold text-center">
-                  Minimum Investment: <span className="text-white">${deal.minimum_investment.toLocaleString()}</span>
-                </div>
+            <div className="space-y-6">
+              <StepLabel n={2} text="Enter Allocation Amount" />
+              <div className="relative">
+                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl font-black" style={{ color: T.gold }}>$</span>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                  className="w-full py-5 pl-10 pr-5 text-3xl font-black outline-none rounded-sm transition-all"
+                  style={{
+                    background: T.raised,
+                    border: `1px solid ${amount < deal.minimum_investment ? T.ruby : T.border}`,
+                    color: T.text,
+                  }}
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4 pt-4">
-                <Button variant="outline" onClick={handleBack} className="py-4">Back</Button>
-                <Button onClick={handleNext} disabled={amount < deal.minimum_investment} className="py-4">Review Documents</Button>
+              {amount < deal.minimum_investment && (
+                <p className="text-xs" style={{ color: T.ruby }}>
+                  Minimum investment is ${deal.minimum_investment.toLocaleString()}
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-3 p-4 rounded-sm" style={{ background: T.raised, border: `1px solid ${T.border}` }}>
+                <Metric label="Est. Annual Yield" value={`$${(amount * deal.cash_yield / 100).toLocaleString()}`} color={T.jade} />
+                <Metric label="Target IRR" value={`${deal.projected_irr}%`} color={T.gold} />
+              </div>
+              <p className="text-center text-[9px] uppercase tracking-widest" style={{ color: T.textDim }}>
+                Minimum: <span style={{ color: T.text }}>${deal.minimum_investment.toLocaleString()}</span>
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+                <Button onClick={handleNext} disabled={amount < deal.minimum_investment} size="lg">Review →</Button>
               </div>
             </div>
           )}
 
+          {/* ── Step 3: Disclosure ────────────────────────────────────── */}
           {step === 3 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <label className="text-[10px] font-bold text-[#8FAEDB] uppercase tracking-[0.2em]">Step 3: Subscription Agreement</label>
-              
-              <div className="p-6 rounded-lg bg-white/5 border border-white/10 space-y-4">
-                 <div className="flex items-center gap-3 text-white">
-                    <FileText size={24} className="text-[#2F80ED]" />
-                    <span className="font-bold uppercase tracking-wider text-sm">SubscriptionAgreement_V2.pdf</span>
-                 </div>
-                 <div className="h-40 bg-black/40 rounded border border-white/5 flex items-center justify-center p-4">
-                    <p className="text-[10px] text-[#8FAEDB]/50 uppercase tracking-widest text-center leading-relaxed">
-                      By signing this document, you acknowledge the inherent risks of private capital investing including total loss of principal...
-                    </p>
-                 </div>
+            <div className="space-y-5">
+              <StepLabel n={3} text="Subscription Agreement" />
+              <div className="rounded-sm overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
+                <div className="flex items-center gap-3 p-4" style={{ background: T.raised, borderBottom: `1px solid ${T.border}` }}>
+                  <FileText size={16} style={{ color: T.gold }} />
+                  <span className="text-xs font-black uppercase tracking-wide" style={{ color: T.text }}>SubscriptionAgreement_V2.pdf</span>
+                </div>
+                <div className="p-6 h-28 flex items-center justify-center" style={{ background: T.bg }}>
+                  <p className="text-[10px] text-center leading-relaxed" style={{ color: T.textDim }}>
+                    By signing this agreement, you acknowledge the inherent risks of private capital investing, including total loss of principal, illiquidity, and regulatory exposure.
+                  </p>
+                </div>
               </div>
-
-              <div className="space-y-3">
-                 <div className="flex gap-3 items-start group cursor-pointer">
-                    <input type="checkbox" id="risk" className="mt-1 accent-[#2F80ED]" required />
-                    <label htmlFor="risk" className="text-[10px] text-[#8FAEDB] uppercase tracking-wider leading-relaxed cursor-pointer group-hover:text-white transition-colors">
-                      I have read and agree to the Risk Disclosures and Private Placement Memorandum.
-                    </label>
-                 </div>
+              <div className="flex gap-3 items-start">
+                <input type="checkbox" id="risk" required className="mt-0.5 accent-amber-500" />
+                <label htmlFor="risk" className="text-[10px] leading-relaxed cursor-pointer" style={{ color: T.textSub }}>
+                  I have read and agree to the Risk Disclosures, PPM, and Subscription Agreement.
+                </label>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" onClick={handleBack} className="py-4">Back</Button>
-                <Button onClick={handleNext} className="py-4">Sign & Proceed</Button>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+                <Button onClick={handleNext} size="lg">Sign & Proceed →</Button>
               </div>
             </div>
           )}
 
+          {/* ── Step 4: Funding ───────────────────────────────────────── */}
           {step === 4 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <label className="text-[10px] font-bold text-[#8FAEDB] uppercase tracking-[0.2em]">Step 4: Funding Method</label>
-              
-              <div className="grid grid-cols-1 gap-4">
-                {/* 1. Wire Transfer */}
-                <div className="flex flex-col border border-white/10 rounded-xl overflow-hidden bg-white/5">
-                  <button 
-                    onClick={() => setFundingMethod(fundingMethod === 'WIRE' ? null : 'WIRE')}
-                    className={`flex items-center justify-between p-5 transition-all ${fundingMethod === 'WIRE' ? 'bg-[#2F80ED]/10' : 'hover:bg-white/5'}`}
-                  >
-                     <div className="flex items-center gap-4">
-                        <Building2 className={fundingMethod === 'WIRE' ? 'text-[#2F80ED]' : 'text-[#8FAEDB]'} />
+            <div className="space-y-4">
+              <StepLabel n={4} text="Select Funding Method" />
+              {(
+                [
+                  { id: 'WIRE', icon: Building2, label: 'Wire Transfer',  sub: 'Institutional wire instructions' },
+                  { id: 'ACH',  icon: Landmark,  label: 'ACH Debit',      sub: 'Verified bank account link' },
+                  { id: 'CC',   icon: CreditCard, label: 'Credit Card',   sub: 'Instant authorization' },
+                  { id: 'IRA',  icon: FileText,   label: 'IRA Payment',   sub: 'Self-directed IRA coordination' },
+                ] as { id: FundingMethod; icon: React.FC<{size?:number}>; label: string; sub: string }[]
+              ).map((opt) => {
+                const open = fundingMethod === opt.id;
+                return (
+                  <div key={opt.id} className="rounded-sm overflow-hidden" style={{ border: `1px solid ${open ? T.gold : T.border}` }}>
+                    <button
+                      onClick={() => setFundingMethod(open ? null : opt.id)}
+                      className="w-full flex items-center justify-between p-4 transition-all"
+                      style={{ background: open ? T.goldFaint : T.raised }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <opt.icon size={15} style={{ color: open ? T.gold : T.textDim }} />
                         <div className="text-left">
-                          <span className="block text-sm font-bold text-white uppercase tracking-wider">Wire Transfer</span>
-                          <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest">Instant institutional instructions</span>
+                          <p className="text-xs font-black uppercase tracking-wide" style={{ color: open ? T.gold : T.text }}>{opt.label}</p>
+                          <p className="text-[9px]" style={{ color: T.textDim }}>{opt.sub}</p>
                         </div>
-                     </div>
-                     <ChevronDown size={18} className={`text-[#8FAEDB] transition-transform ${fundingMethod === 'WIRE' ? 'rotate-180' : ''}`} />
-                  </button>
-                  {fundingMethod === 'WIRE' && (
-                    <div className="p-6 border-t border-white/5 bg-black/20 space-y-4 animate-in slide-in-from-top-2">
-                       <div className="grid grid-cols-2 gap-4">
-                          <DetailItem label="Bank Name" value="Chase Bank, N.A." />
-                          <DetailItem label="Beneficiary" value="DIVERSIFY CAPITAL LLC" />
-                          <DetailItem label="Account Number" value="9876543210" copyable />
-                          <DetailItem label="Routing Number" value="021000021" copyable />
-                          <DetailItem label="SWIFT Code" value="CHASEUS33" />
-                          <DetailItem label="Bank Address" value="270 Park Ave, New York, NY" />
-                       </div>
-                       <div className="p-3 bg-[#2F80ED]/5 border border-[#2F80ED]/20 rounded">
-                          <span className="block text-[8px] text-[#2F80ED] font-bold uppercase tracking-widest mb-1">Critical: Reference Memo</span>
-                          <span className="text-sm font-bold text-white uppercase">{userFullName} - {deal.title}</span>
-                       </div>
-                    </div>
-                  )}
-                </div>
+                      </div>
+                      <ChevronDown size={14} style={{ color: T.textDim, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </button>
+                    {open && (
+                      <div className="p-5" style={{ background: T.bg, borderTop: `1px solid ${T.border}` }}>
+                        {opt.id === 'WIRE' && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                              {[
+                                { l: 'Bank', v: 'Chase Bank, N.A.' },
+                                { l: 'Beneficiary', v: 'DIVERSIFY CAPITAL LLC' },
+                                { l: 'Account #', v: '9876543210', c: true },
+                                { l: 'Routing #', v: '021000021', c: true },
+                                { l: 'SWIFT', v: 'CHASEUS33' },
+                                { l: 'Address', v: '270 Park Ave, NY 10017' },
+                              ].map((item) => (
+                                <DetailRow key={item.l} label={item.l} value={item.v} copyable={item.c} />
+                              ))}
+                            </div>
+                            <div className="p-3 rounded-sm" style={{ background: T.goldFaint, border: `1px solid ${T.gold}30` }}>
+                              <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: T.gold }}>Memo Reference (Required)</p>
+                              <p className="text-xs font-black uppercase" style={{ color: T.text }}>{userFullName} — {deal.title}</p>
+                            </div>
+                          </div>
+                        )}
+                        {opt.id === 'ACH' && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 p-3 rounded-sm" style={{ background: T.jadeFaint, border: `1px solid ${T.jade}40` }}>
+                              <CheckCircle2 size={16} style={{ color: T.jade }} />
+                              <div>
+                                <p className="text-xs font-black uppercase" style={{ color: T.text }}>Plaid Verified: Goldman Sachs</p>
+                                <p className="text-[9px]" style={{ color: T.textDim }}>Account ending ****4421</p>
+                              </div>
+                            </div>
+                            <p className="text-[9px] italic" style={{ color: T.textDim }}>
+                              "I authorize DIVERSIFY to initiate a one-time ACH debit for the total allocation amount."
+                            </p>
+                          </div>
+                        )}
+                        {opt.id === 'CC' && (
+                          <div className="space-y-3">
+                            {[
+                              { l: 'Name', v: userFullName },
+                              { l: 'Card', v: '**** **** **** 4242' },
+                            ].map((f) => (
+                              <div key={f.l} className="space-y-1">
+                                <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: T.textDim }}>{f.l}</p>
+                                <div className="px-3 py-2 rounded-sm text-xs font-bold" style={{ background: T.raised, color: T.text }}>{f.v}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {opt.id === 'IRA' && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                              {[
+                                { l: 'Custodian', v: 'Millennium Trust Co.' },
+                                { l: 'IRA Account #', v: 'IRA-55667788' },
+                              ].map((f) => (
+                                <DetailRow key={f.l} label={f.l} value={f.v} />
+                              ))}
+                            </div>
+                            <div className="p-3 rounded-sm" style={{ background: T.goldFaint, border: `1px solid ${T.gold}40` }}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Info size={12} style={{ color: T.gold }} />
+                                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: T.gold }}>Custodian Coordination Required</p>
+                              </div>
+                              <div className="flex gap-2 items-start">
+                                <input type="checkbox" id="ira-ack" checked={iraAck} onChange={(e) => setIraAck(e.target.checked)} className="mt-0.5 accent-amber-500" />
+                                <label htmlFor="ira-ack" className="text-[9px] leading-relaxed cursor-pointer" style={{ color: T.textSub }}>
+                                  I acknowledge that I must coordinate the funding directly with my IRA custodian and ensure the funds are correctly referenced to this transaction.
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
-                {/* 2. ACH Direct Debit */}
-                <div className="flex flex-col border border-white/10 rounded-xl overflow-hidden bg-white/5">
-                  <button 
-                    onClick={() => setFundingMethod(fundingMethod === 'ACH' ? null : 'ACH')}
-                    className={`flex items-center justify-between p-5 transition-all ${fundingMethod === 'ACH' ? 'bg-[#2F80ED]/10' : 'hover:bg-white/5'}`}
-                  >
-                     <div className="flex items-center gap-4">
-                        <Landmark className={fundingMethod === 'ACH' ? 'text-[#2F80ED]' : 'text-[#8FAEDB]'} />
-                        <div className="text-left">
-                          <span className="block text-sm font-bold text-white uppercase tracking-wider">ACH Direct Debit</span>
-                          <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest">Verified institutional link</span>
-                        </div>
-                     </div>
-                     <ChevronDown size={18} className={`text-[#8FAEDB] transition-transform ${fundingMethod === 'ACH' ? 'rotate-180' : ''}`} />
-                  </button>
-                  {fundingMethod === 'ACH' && (
-                    <div className="p-6 border-t border-white/5 bg-black/20 space-y-4 animate-in slide-in-from-top-2">
-                       <div className="flex items-center gap-4 p-4 rounded bg-[#00E0C6]/5 border border-[#00E0C6]/20">
-                          <div className="w-10 h-10 rounded-full bg-[#00E0C6]/10 flex items-center justify-center text-[#00E0C6]">
-                             <CheckCircle2 size={20} />
-                          </div>
-                          <div>
-                             <p className="text-xs font-bold text-white uppercase tracking-tight">Plaid Verified: Goldman Sachs Bank</p>
-                             <p className="text-[10px] text-[#8FAEDB] uppercase tracking-widest">Account ending in ****4421</p>
-                          </div>
-                       </div>
-                       <div className="grid grid-cols-2 gap-4 text-[10px]">
-                          <DetailItem label="Account Holder" value={userFullName} />
-                          <DetailItem label="Account Type" value="Commercial Checking" />
-                       </div>
-                       <div className="text-[9px] text-[#8FAEDB] italic uppercase opacity-60">
-                         "I authorize DIVERSIFY to initiate a one-time ACH debit from the account above for the total allocation amount."
-                       </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. Credit Card */}
-                <div className="flex flex-col border border-white/10 rounded-xl overflow-hidden bg-white/5">
-                  <button 
-                    onClick={() => setFundingMethod(fundingMethod === 'CC' ? null : 'CC')}
-                    className={`flex items-center justify-between p-5 transition-all ${fundingMethod === 'CC' ? 'bg-[#2F80ED]/10' : 'hover:bg-white/5'}`}
-                  >
-                     <div className="flex items-center gap-4">
-                        <CreditCard className={fundingMethod === 'CC' ? 'text-[#2F80ED]' : 'text-[#8FAEDB]'} />
-                        <div className="text-left">
-                          <span className="block text-sm font-bold text-white uppercase tracking-wider">Credit Card</span>
-                          <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest">Instant funding authorization</span>
-                        </div>
-                     </div>
-                     <ChevronDown size={18} className={`text-[#8FAEDB] transition-transform ${fundingMethod === 'CC' ? 'rotate-180' : ''}`} />
-                  </button>
-                  {fundingMethod === 'CC' && (
-                    <div className="p-6 border-t border-white/5 bg-black/20 space-y-4 animate-in slide-in-from-top-2">
-                       <div className="space-y-3">
-                          <div className="space-y-1">
-                             <label className="text-[8px] font-bold text-[#8FAEDB] uppercase tracking-[0.2em]">Cardholder Name</label>
-                             <input readOnly value={userFullName} className="w-full bg-[#081C3A] border border-white/10 rounded px-3 py-2 text-xs text-white" />
-                          </div>
-                          <div className="space-y-1">
-                             <label className="text-[8px] font-bold text-[#8FAEDB] uppercase tracking-[0.2em]">Card Number</label>
-                             <div className="relative">
-                                <input readOnly value="**** **** **** 4242" className="w-full bg-[#081C3A] border border-white/10 rounded px-3 py-2 text-xs text-white" />
-                                <CreditCard size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2F80ED] opacity-50" />
-                             </div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-3">
-                             <div className="space-y-1">
-                                <label className="text-[8px] font-bold text-[#8FAEDB] uppercase tracking-[0.2em]">EXP</label>
-                                <input readOnly value="12/26" className="w-full bg-[#081C3A] border border-white/10 rounded px-3 py-2 text-xs text-white" />
-                             </div>
-                             <div className="space-y-1">
-                                <label className="text-[8px] font-bold text-[#8FAEDB] uppercase tracking-[0.2em]">CVV</label>
-                                <input readOnly value="***" className="w-full bg-[#081C3A] border border-white/10 rounded px-3 py-2 text-xs text-white" />
-                             </div>
-                             <div className="space-y-1">
-                                <label className="text-[8px] font-bold text-[#8FAEDB] uppercase tracking-[0.2em]">ZIP</label>
-                                <input readOnly value="10001" className="w-full bg-[#081C3A] border border-white/10 rounded px-3 py-2 text-xs text-white" />
-                             </div>
-                          </div>
-                       </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 4. IRA Payment */}
-                <div className="flex flex-col border border-white/10 rounded-xl overflow-hidden bg-white/5">
-                  <button 
-                    onClick={() => setFundingMethod(fundingMethod === 'IRA' ? null : 'IRA')}
-                    className={`flex items-center justify-between p-5 transition-all ${fundingMethod === 'IRA' ? 'bg-[#2F80ED]/10' : 'hover:bg-white/5'}`}
-                  >
-                     <div className="flex items-center gap-4">
-                        <FileText className={fundingMethod === 'IRA' ? 'text-[#2F80ED]' : 'text-[#8FAEDB]'} />
-                        <div className="text-left">
-                          <span className="block text-sm font-bold text-white uppercase tracking-wider">IRA Payment</span>
-                          <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest">Self-Directed IRA coordination</span>
-                        </div>
-                     </div>
-                     <ChevronDown size={18} className={`text-[#8FAEDB] transition-transform ${fundingMethod === 'IRA' ? 'rotate-180' : ''}`} />
-                  </button>
-                  {fundingMethod === 'IRA' && (
-                    <div className="p-6 border-t border-white/5 bg-black/20 space-y-6 animate-in slide-in-from-top-2">
-                       <div className="grid grid-cols-2 gap-4">
-                          <DetailItem label="Custodian" value="Millennium Trust Company" />
-                          <DetailItem label="IRA Account #" value="IRA-55667788" />
-                          <DetailItem label="Preferred Method" value="Institutional Wire" />
-                          <DetailItem label="Custodian Contact" value="800-258-7878" />
-                       </div>
-                       
-                       <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 space-y-3">
-                          <div className="flex items-center gap-2">
-                             <Info size={14} className="text-yellow-500" />
-                             <span className="text-[10px] font-bold text-white uppercase tracking-widest">Custodian Coordination</span>
-                          </div>
-                          <div className="flex gap-3 items-start">
-                             <input 
-                               type="checkbox" 
-                               id="ira-confirm" 
-                               checked={iraAcknowledged}
-                               onChange={(e) => setIraAcknowledged(e.target.checked)}
-                               className="mt-1 accent-[#2F80ED]" 
-                             />
-                             <label htmlFor="ira-confirm" className="text-[10px] text-[#8FAEDB] leading-relaxed cursor-pointer select-none">
-                                I acknowledge that I am responsible for coordinating the entire funding process through my IRA custodian. 
-                                I will ensure the funds are released and correctly referenced to this transaction.
-                             </label>
-                          </div>
-                       </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-4 shrink-0">
-                <Button variant="outline" onClick={handleBack} disabled={isSubmitting} className="py-4">Back</Button>
-                <Button 
-                  onClick={handleSubmit} 
-                  disabled={!canConfirmFunding} 
-                  className="py-4 flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Processing...
-                    </>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <Button variant="outline" onClick={() => setStep(3)} disabled={submitting}>Back</Button>
+                <Button onClick={handleSubmit} disabled={!canFund} size="lg">
+                  {submitting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-3.5 h-3.5 border-2 rounded-full border-black/30 border-t-black animate-spin" />
+                      Processing…
+                    </span>
                   ) : 'Confirm Funding'}
                 </Button>
               </div>
             </div>
           )}
 
+          {/* ── Step 5: Confirmation ──────────────────────────────────── */}
           {step === 5 && (
-            <div className="py-12 text-center space-y-6 animate-in fade-in zoom-in-95">
-              <div className="flex justify-center">
-                <div className="w-24 h-24 rounded-full bg-[#00E0C6]/10 flex items-center justify-center text-[#00E0C6] cyan-glow border border-[#00E0C6]/20">
-                  <Shield size={48} />
-                </div>
+            <div className="py-10 text-center space-y-6">
+              <div className="w-20 h-20 rounded-sm flex items-center justify-center mx-auto" style={{ background: T.jadeFaint, border: `1px solid ${T.jade}40` }}>
+                <Shield size={36} style={{ color: T.jade }} />
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-white uppercase tracking-tight mb-2">Investment Pending</h2>
-                <p className="text-[#8FAEDB] text-sm max-w-sm mx-auto leading-relaxed">
-                  Your allocation request for <span className="text-white font-bold">{deal.title}</span> is complete. Funds are pending institutional confirmation and committee review.
+                <h3 className="text-lg font-black uppercase tracking-widest mb-2" style={{ color: T.text }}>Allocation Submitted</h3>
+                <p className="text-xs leading-relaxed max-w-sm mx-auto" style={{ color: T.textSub }}>
+                  Your allocation for <strong style={{ color: T.text }}>{deal.title}</strong> is complete. Funds are pending institutional confirmation and committee review.
                 </p>
               </div>
-              <div className="pt-6">
-                <Button onClick={onComplete || onClose} variant="primary" className="w-full py-4 text-sm">Return to Command Center</Button>
-              </div>
-              <p className="text-[9px] text-[#8FAEDB]/50 uppercase tracking-[0.2em]">Transaction ID: TXN_{Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
+              <Button onClick={onComplete || onClose} className="w-full" size="lg">Return to Dashboard</Button>
+              <p className="text-[9px] uppercase tracking-widest" style={{ color: T.textDim }}>
+                TXN_{Math.random().toString(36).substr(2, 9).toUpperCase()}
+              </p>
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
 
-const DetailItem: React.FC<{ label: string, value: string, copyable?: boolean }> = ({ label, value, copyable }) => (
+const StepLabel: React.FC<{ n: number; text: string }> = ({ n, text }) => (
+  <div className="flex items-center gap-2 mb-5">
+    <div className="w-5 h-5 rounded-sm flex items-center justify-center text-[9px] font-black" style={{ background: T.gold, color: '#000' }}>
+      {n}
+    </div>
+    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.textSub }}>{text}</p>
+  </div>
+);
+
+const Metric: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
   <div className="space-y-1">
-    <span className="block text-[8px] text-[#8FAEDB] font-bold uppercase tracking-widest">{label}</span>
-    <div className="flex items-center justify-between gap-2">
-       <span className="text-[10px] text-white font-bold uppercase truncate">{value}</span>
-       {copyable && (
-         <button className="text-[#2F80ED] hover:text-white transition-colors" title="Copy to clipboard">
-            <Copy size={10} />
-         </button>
-       )}
+    <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: T.textDim }}>{label}</p>
+    <p className="text-lg font-black" style={{ color }}>{value}</p>
+  </div>
+);
+
+const DetailRow: React.FC<{ label: string; value: string; copyable?: boolean }> = ({ label, value, copyable }) => (
+  <div className="space-y-1">
+    <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: T.textDim }}>{label}</p>
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] font-black uppercase truncate" style={{ color: T.text }}>{value}</span>
+      {copyable && (
+        <button onClick={() => navigator.clipboard?.writeText(value)} style={{ color: T.textDim }} className="hover:text-amber-400 transition-colors flex-shrink-0">
+          <Copy size={10} />
+        </button>
+      )}
     </div>
   </div>
 );

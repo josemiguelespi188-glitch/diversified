@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import { Card, Badge, Button } from './UIElements';
-import { MessageCircle, Plus, X, Send, ChevronDown, Clock, CheckCircle2, AlertCircle, Inbox } from 'lucide-react';
+import { Button, Badge, Input, Select, Modal, T } from './UIElements';
+import { MessageCircle, Plus, Send, ChevronDown, Clock, CheckCircle2, AlertCircle, Inbox } from 'lucide-react';
 
 interface SupportTicket {
   id: string;
@@ -16,183 +15,124 @@ interface SupportTicket {
 }
 
 const MOCK_TICKETS: SupportTicket[] = [
-  {
-    id: 'TKT-0041',
-    subject: 'Distribution not reflected in dashboard',
-    category: 'Distributions',
-    description: 'My Q1 2025 distribution from Phoenix Multifamily Fund does not appear on the dashboard yet.',
-    status: 'in_progress',
-    priority: 'high',
-    created_at: '2025-01-20T09:00:00Z',
-    updated_at: '2025-01-21T14:30:00Z',
-    last_reply: 'Our team is reviewing the transaction. Expected resolution within 24h.'
-  },
-  {
-    id: 'TKT-0038',
-    subject: 'Request for updated K-1 document',
-    category: 'Tax & Legal',
-    description: 'Requesting the updated Schedule K-1 for tax year 2024.',
-    status: 'resolved',
-    priority: 'medium',
-    created_at: '2025-02-01T11:00:00Z',
-    updated_at: '2025-02-03T16:00:00Z',
-    last_reply: 'K-1 has been uploaded to your Documents vault.'
-  },
-  {
-    id: 'TKT-0035',
-    subject: 'Question about Cornerstone Debt Fund terms',
-    category: 'Deals & Investments',
-    description: 'I have questions about the preferred return structure on the Cornerstone Debt Fund.',
-    status: 'resolved',
-    priority: 'low',
-    created_at: '2024-12-10T08:00:00Z',
-    updated_at: '2024-12-11T10:00:00Z',
-    last_reply: 'Please refer to the PPM document in your vault, section 4.2. We also sent you an email.'
-  }
+  { id: 'TKT-0041', subject: 'Distribution not reflected in dashboard', category: 'Distributions', description: 'My Q1 2025 distribution from Phoenix Multifamily Fund does not appear yet.', status: 'in_progress', priority: 'high', created_at: '2025-01-20T09:00:00Z', updated_at: '2025-01-21T14:30:00Z', last_reply: 'Our team is reviewing the transaction. Expected resolution within 24h.' },
+  { id: 'TKT-0038', subject: 'Request for updated K-1 document', category: 'Tax & Legal', description: 'Requesting the updated Schedule K-1 for tax year 2024.', status: 'resolved', priority: 'medium', created_at: '2025-02-01T11:00:00Z', updated_at: '2025-02-03T16:00:00Z', last_reply: 'K-1 has been uploaded to your Documents vault.' },
+  { id: 'TKT-0035', subject: 'Question about Cornerstone Debt Fund terms', category: 'Deals & Investments', description: 'Questions about the preferred return structure on the Cornerstone Debt Fund.', status: 'resolved', priority: 'low', created_at: '2024-12-10T08:00:00Z', updated_at: '2024-12-11T10:00:00Z', last_reply: 'Please refer to PPM section 4.2. We also sent you an email.' },
 ];
 
 const CATEGORIES = ['Distributions', 'Deals & Investments', 'Accreditation & KYC', 'Tax & Legal', 'Funding & Wires', 'Other'];
 
-const STATUS_CONFIG = {
-  open: { label: 'Open', color: '#F59E0B', icon: AlertCircle },
-  in_progress: { label: 'In Progress', color: '#2F80ED', icon: Clock },
-  resolved: { label: 'Resolved', color: '#00E0C6', icon: CheckCircle2 }
+const STATUS_CFG: Record<string, { label: string; color: string; icon: React.FC<{ size?: number }> }> = {
+  open:        { label: 'Open',        color: T.gold,   icon: AlertCircle },
+  in_progress: { label: 'In Progress', color: T.sky,    icon: Clock },
+  resolved:    { label: 'Resolved',    color: T.jade,   icon: CheckCircle2 },
 };
 
-const PRIORITY_CONFIG = {
-  low: { label: 'Low', color: '#8FAEDB' },
-  medium: { label: 'Medium', color: '#F59E0B' },
-  high: { label: 'High', color: '#EF4444' }
+const PRIORITY_CFG: Record<string, { label: string; color: string }> = {
+  low:    { label: 'Low',    color: T.textSub },
+  medium: { label: 'Medium', color: T.gold },
+  high:   { label: 'High',   color: T.ruby },
 };
 
 export const Support: React.FC = () => {
   const [tickets, setTickets] = useState<SupportTicket[]>(MOCK_TICKETS);
   const [showForm, setShowForm] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [form, setForm] = useState({ subject: '', category: CATEGORIES[0], description: '', priority: 'medium' as 'low' | 'medium' | 'high' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [form, setForm] = useState({ subject: '', category: CATEGORIES[0], description: '', priority: 'medium' as const });
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
 
-  const openCount = tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
+  const openCount = tickets.filter((t) => t.status !== 'resolved').length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    await new Promise(r => setTimeout(r, 1200));
+    setSubmitting(true);
+    await new Promise((r) => setTimeout(r, 1200));
     const newTicket: SupportTicket = {
-      id: `TKT-${String(Math.floor(Math.random() * 900) + 100)}`,
-      subject: form.subject,
-      category: form.category,
-      description: form.description,
+      id: `TKT-${String(Math.floor(Math.random() * 900 + 100))}`,
+      ...form,
       status: 'open',
-      priority: form.priority,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
-    setTickets(prev => [newTicket, ...prev]);
-    setIsSubmitting(false);
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setShowForm(false);
-      setForm({ subject: '', category: CATEGORIES[0], description: '', priority: 'medium' });
-    }, 2000);
+    setTickets((prev) => [newTicket, ...prev]);
+    setSubmitting(false);
+    setDone(true);
+    setTimeout(() => { setDone(false); setShowForm(false); setForm({ subject: '', category: CATEGORIES[0], description: '', priority: 'medium' }); }, 2000);
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 max-w-4xl">
-      <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
+    <div className="max-w-3xl space-y-8 pb-20">
+      {/* Header */}
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-1 uppercase tracking-tight">Support</h1>
-          <p className="text-[#8FAEDB] text-sm uppercase tracking-widest font-medium opacity-60">
-            Institutional client services
-          </p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style={{ color: T.gold }}>Client Services</p>
+          <h1 className="text-2xl font-black uppercase tracking-tight" style={{ color: T.text }}>Support</h1>
         </div>
         <div className="flex items-center gap-3">
-          {openCount > 0 && (
-            <span className="text-[10px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 px-3 py-1.5 rounded font-bold uppercase tracking-widest">
-              {openCount} Active
-            </span>
-          )}
-          <Button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-[10px]">
-            <Plus size={14} /> Open Ticket
+          {openCount > 0 && <Badge variant="gold">{openCount} Active</Badge>}
+          <Button onClick={() => setShowForm(true)} size="sm">
+            <Plus size={12} /> Open Ticket
           </Button>
         </div>
-      </header>
+      </div>
 
-      {/* Ticket List */}
+      {/* Tickets */}
       {tickets.length === 0 ? (
-        <Card className="text-center py-20 border-white/5">
-          <Inbox size={40} className="mx-auto text-[#8FAEDB]/20 mb-4" />
-          <p className="text-[10px] text-[#8FAEDB]/40 uppercase tracking-widest">No support tickets</p>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-24" style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6 }}>
+          <Inbox size={24} style={{ color: T.textDim, marginBottom: 12 }} />
+          <p className="text-[10px] uppercase tracking-widest" style={{ color: T.textDim }}>No support tickets</p>
+        </div>
       ) : (
-        <div className="space-y-3">
-          {tickets.map(ticket => {
-            const statusCfg = STATUS_CONFIG[ticket.status];
-            const StatusIcon = statusCfg.icon;
-            const priorityCfg = PRIORITY_CONFIG[ticket.priority];
-            const isExpanded = expandedId === ticket.id;
+        <div className="space-y-2">
+          {tickets.map((ticket) => {
+            const sc = STATUS_CFG[ticket.status];
+            const pc = PRIORITY_CFG[ticket.priority];
+            const StatusIcon = sc.icon;
+            const open = expanded === ticket.id;
 
             return (
-              <div key={ticket.id} className="rounded-xl overflow-hidden border border-white/5 bg-white/5">
+              <div key={ticket.id} className="rounded-sm overflow-hidden" style={{ border: `1px solid ${open ? T.gold + '40' : T.border}` }}>
                 <button
-                  onClick={() => setExpandedId(isExpanded ? null : ticket.id)}
-                  className={`w-full text-left p-5 flex items-center gap-4 transition-all hover:bg-white/5 ${isExpanded ? 'bg-white/5' : ''}`}
+                  onClick={() => setExpanded(open ? null : ticket.id)}
+                  className="w-full text-left p-4 flex items-center gap-4 transition-all"
+                  style={{ background: open ? T.goldFaint : T.surface }}
                 >
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: statusCfg.color + '15', border: `1px solid ${statusCfg.color}30` }}
-                  >
-                    <StatusIcon size={16} style={{ color: statusCfg.color }} />
+                  <div className="w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0" style={{ background: `${sc.color}15`, border: `1px solid ${sc.color}30` }}>
+                    <StatusIcon size={14} style={{ color: sc.color }} />
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-white uppercase tracking-tight truncate">
-                        {ticket.subject}
-                      </span>
-                      <span className="text-[8px] text-[#8FAEDB]/50 font-bold uppercase">{ticket.id}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black uppercase tracking-wide truncate" style={{ color: T.text }}>{ticket.subject}</span>
+                      <span className="text-[9px]" style={{ color: T.textDim }}>{ticket.id}</span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest opacity-60">{ticket.category}</span>
-                      <span className="text-[#8FAEDB]/30 text-[9px]">•</span>
-                      <span className="text-[9px] text-[#8FAEDB] uppercase tracking-widest opacity-60">
-                        {new Date(ticket.updated_at).toLocaleDateString()}
-                      </span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[9px] uppercase tracking-widest" style={{ color: T.textDim }}>{ticket.category}</span>
+                      <span style={{ color: T.textDim }}>·</span>
+                      <span className="text-[9px]" style={{ color: T.textDim }}>{new Date(ticket.updated_at).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span
-                      className="hidden sm:block text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border"
-                      style={{ color: priorityCfg.color, borderColor: priorityCfg.color + '40', background: priorityCfg.color + '10' }}
-                    >
-                      {priorityCfg.label}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="hidden sm:block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm" style={{ color: pc.color, background: `${pc.color}15`, border: `1px solid ${pc.color}40` }}>
+                      {pc.label}
                     </span>
-                    <span
-                      className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border"
-                      style={{ color: statusCfg.color, borderColor: statusCfg.color + '40', background: statusCfg.color + '10' }}
-                    >
-                      {statusCfg.label}
+                    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm" style={{ color: sc.color, background: `${sc.color}15`, border: `1px solid ${sc.color}40` }}>
+                      {sc.label}
                     </span>
-                    <ChevronDown
-                      size={16}
-                      className={`text-[#8FAEDB] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-                    />
+                    <ChevronDown size={13} style={{ color: T.textDim, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                   </div>
                 </button>
 
-                {isExpanded && (
-                  <div className="border-t border-white/5 p-6 space-y-4 animate-in slide-in-from-top-2 duration-200 bg-black/10">
+                {open && (
+                  <div className="p-5 space-y-4" style={{ background: T.bg, borderTop: `1px solid ${T.border}` }}>
                     <div>
-                      <p className="text-[9px] text-[#8FAEDB] uppercase tracking-widest font-bold mb-2">Description</p>
-                      <p className="text-sm text-[#C9D8F0] leading-relaxed">{ticket.description}</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: T.textDim }}>Description</p>
+                      <p className="text-xs leading-relaxed" style={{ color: T.textSub }}>{ticket.description}</p>
                     </div>
                     {ticket.last_reply && (
-                      <div className="p-4 rounded-lg bg-[#2F80ED]/5 border border-[#2F80ED]/20">
-                        <p className="text-[9px] text-[#2F80ED] uppercase tracking-widest font-bold mb-2">
-                          Diversify Support Team
-                        </p>
-                        <p className="text-sm text-[#C9D8F0] leading-relaxed">{ticket.last_reply}</p>
+                      <div className="p-4 rounded-sm" style={{ background: T.goldFaint, border: `1px solid ${T.gold}30` }}>
+                        <p className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: T.gold }}>Diversify Support Team</p>
+                        <p className="text-xs leading-relaxed" style={{ color: T.textSub }}>{ticket.last_reply}</p>
                       </div>
                     )}
                   </div>
@@ -204,99 +144,59 @@ export const Support: React.FC = () => {
       )}
 
       {/* New Ticket Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#081C3A]/95 backdrop-blur-md" onClick={() => !isSubmitting && setShowForm(false)} />
-          <Card className="relative w-full max-w-lg p-0 overflow-hidden border-[#2F80ED]/20 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#0F2A4A]/50">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#2F80ED]/10 border border-[#2F80ED]/20 flex items-center justify-center text-[#2F80ED]">
-                  <MessageCircle size={18} />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-white tracking-tight uppercase">New Support Ticket</h2>
-                  <p className="text-[9px] text-[#8FAEDB] uppercase tracking-widest">Institutional Client Services</p>
-                </div>
-              </div>
-              <button onClick={() => setShowForm(false)} disabled={isSubmitting} className="text-[#8FAEDB] hover:text-white transition-colors p-2">
-                <X size={18} />
-              </button>
+      <Modal isOpen={showForm} onClose={() => !submitting && setShowForm(false)} title="Open Support Ticket" width="max-w-lg">
+        {done ? (
+          <div className="p-12 text-center space-y-4">
+            <div className="w-14 h-14 rounded-sm flex items-center justify-center mx-auto" style={{ background: T.jadeFaint, border: `1px solid ${T.jade}40` }}>
+              <CheckCircle2 size={24} style={{ color: T.jade }} />
             </div>
-
-            {submitted ? (
-              <div className="p-12 text-center space-y-4">
-                <CheckCircle2 size={48} className="mx-auto text-[#00E0C6]" />
-                <h3 className="text-lg font-bold text-white uppercase tracking-tight">Ticket Submitted</h3>
-                <p className="text-sm text-[#8FAEDB]">Our team will respond within 1 business day.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] uppercase tracking-widest font-bold text-[#8FAEDB]">Subject</label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="Brief description of your issue"
-                    value={form.subject}
-                    onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                    className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-sm focus:border-[#2F80ED] outline-none transition-all"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] uppercase tracking-widest font-bold text-[#8FAEDB]">Category</label>
-                    <select
-                      value={form.category}
-                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                      className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-sm focus:border-[#2F80ED] outline-none appearance-none"
-                    >
-                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] uppercase tracking-widest font-bold text-[#8FAEDB]">Priority</label>
-                    <select
-                      value={form.priority}
-                      onChange={e => setForm(f => ({ ...f, priority: e.target.value as 'low' | 'medium' | 'high' }))}
-                      className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-sm focus:border-[#2F80ED] outline-none appearance-none"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[9px] uppercase tracking-widest font-bold text-[#8FAEDB]">Description</label>
-                  <textarea
-                    required
-                    rows={4}
-                    placeholder="Provide as much detail as possible..."
-                    value={form.description}
-                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    className="w-full bg-[#081C3A] border border-white/10 rounded px-4 py-3 text-white text-sm focus:border-[#2F80ED] outline-none transition-all resize-none"
-                  />
-                </div>
-
-                <Button type="submit" disabled={isSubmitting} className="w-full py-4 flex items-center justify-center gap-2">
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Send size={14} /> Submit Ticket
-                    </>
-                  )}
-                </Button>
-              </form>
-            )}
-          </Card>
-        </div>
-      )}
+            <p className="text-sm font-black uppercase tracking-widest" style={{ color: T.text }}>Ticket Submitted</p>
+            <p className="text-xs" style={{ color: T.textSub }}>Our team will respond within 1 business day.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <Input
+              label="Subject"
+              required
+              placeholder="Brief description of your issue"
+              value={form.subject}
+              onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <Select label="Category" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </Select>
+              <Select label="Priority" value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value as 'low' | 'medium' | 'high' }))}>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textSub }}>Description</label>
+              <textarea
+                required
+                rows={4}
+                placeholder="Provide as much detail as possible…"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                className="w-full rounded-sm px-4 py-2.5 text-sm outline-none transition-all resize-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/10"
+                style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}
+              />
+            </div>
+            <Button type="submit" disabled={submitting} className="w-full" size="lg">
+              {submitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  Submitting…
+                </span>
+              ) : (
+                <><Send size={13} /> Submit Ticket</>
+              )}
+            </Button>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -1,111 +1,157 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { MOCK_DEALS } from '../constants';
-import { Card, Badge, Button } from './UIElements';
-import { MapPin, ShieldCheck, Landmark } from 'lucide-react';
+import { Badge, Button, ProgressBar, SectionHeading, T } from './UIElements';
+import { MapPin, ShieldCheck, Landmark, SlidersHorizontal } from 'lucide-react';
 import { Deal } from '../types';
 
-export const Portfolio: React.FC<{ onAllocate: (deal: Deal) => void, hideHeader?: boolean, isHorizontal?: boolean }> = ({ onAllocate, hideHeader = false, isHorizontal = false }) => {
-  const containerClass = isHorizontal 
-    ? "flex gap-8 overflow-x-auto pb-8 scrollbar-hide snap-x" 
-    : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8";
+const STRATEGIES = ['All', 'Multifamily', 'Industrial', 'Private Debt', 'Development'];
+
+export const Portfolio: React.FC<{
+  onAllocate: (deal: Deal) => void;
+  hideHeader?: boolean;
+}> = ({ onAllocate, hideHeader = false }) => {
+  const [filter, setFilter] = useState('All');
+
+  const deals = filter === 'All' ? MOCK_DEALS : MOCK_DEALS.filter((d) => d.strategy === filter);
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8 pb-20">
       {!hideHeader && (
-        <header className="flex justify-between items-end px-4 md:px-0">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-1">Portfolio Marketplace</h1>
-            <p className="text-[#8FAEDB]">Institutional Grade Private Capital Opportunities</p>
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style={{ color: T.gold }}>
+            Marketplace
+          </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h1 className="text-2xl font-black uppercase tracking-tight" style={{ color: T.text }}>
+              Portfolio Opportunities
+            </h1>
+            <div className="flex items-center gap-2">
+              <Badge variant="jade">Committee Approved</Badge>
+              <Badge variant="gold">Verified Sponsors</Badge>
+            </div>
           </div>
-          <div className="hidden md:flex gap-2">
-            <Badge variant="success">Committee Approved</Badge>
-            <Badge variant="info">Verified Sponsors</Badge>
-          </div>
-        </header>
+        </div>
       )}
 
-      <div className={containerClass}>
-        {MOCK_DEALS.map((deal) => (
-          <Card key={deal.id} className={`overflow-hidden p-0 flex flex-col group border-white/5 hover:border-[#2F80ED]/30 transition-all duration-300 ${isHorizontal ? 'min-w-[340px] md:min-w-[400px] snap-center' : ''}`}>
-            {/* Header Image */}
-            <div className="h-48 relative overflow-hidden">
-              <img src={deal.image_url} alt={deal.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute top-4 left-4 flex gap-2">
-                <Badge variant="success">Open</Badge>
-                <div className="bg-black/40 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-white font-bold uppercase tracking-wider border border-white/10">
-                  {deal.asset_class}
-                </div>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#081C3A] to-transparent"></div>
-              
-              {/* Progress Overlay */}
-              <div className="absolute bottom-4 left-6 right-6">
-                <div className="flex justify-between items-end mb-1">
-                  <span className="text-[10px] text-white/70 uppercase tracking-widest font-bold">Funding Progress</span>
-                  <span className="text-xs font-bold text-[#00E0C6]">{deal.progress}%</span>
-                </div>
-                <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
-                  <div 
-                    className="bg-[#00E0C6] h-full transition-all duration-1000 ease-out cyan-glow" 
-                    style={{ width: `${deal.progress}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-4 flex-1 flex flex-col">
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-1">
-                   <h3 className="text-lg font-bold text-white leading-tight group-hover:text-[#2F80ED] transition-colors">{deal.title}</h3>
-                </div>
-                <div className="flex items-center gap-1 text-[#8FAEDB] text-[10px] uppercase tracking-widest font-bold mb-4">
-                  <MapPin size={10} className="text-[#2F80ED]" />
-                  {deal.location} • <span className="text-white/60">{deal.sponsor}</span>
-                </div>
+      {/* Filter Bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <SlidersHorizontal size={13} style={{ color: T.textDim }} />
+        {STRATEGIES.map((s) => {
+          const active = filter === s;
+          return (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className="px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all"
+              style={{
+                background: active ? T.gold : T.raised,
+                color: active ? '#000' : T.textDim,
+                border: `1px solid ${active ? T.gold : T.border}`,
+              }}
+            >
+              {s}
+            </button>
+          );
+        })}
+      </div>
 
-                <div className="grid grid-cols-2 gap-y-4 gap-x-6 py-4 border-y border-white/5">
-                  <div className="space-y-1">
-                    <div className="text-[9px] uppercase text-[#8FAEDB] tracking-[0.15em] font-bold">Target IRR</div>
-                    <div className="text-lg text-[#2F80ED] font-bold tracking-tight">{deal.projected_irr}%</div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-[9px] uppercase text-[#8FAEDB] tracking-[0.15em] font-bold">Cash Yield</div>
-                    <div className="text-lg text-[#00E0C6] font-bold tracking-tight">{deal.cash_yield}%</div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-[9px] uppercase text-[#8FAEDB] tracking-[0.15em] font-bold">Min Investment</div>
-                    <div className="text-sm text-white font-bold">${deal.minimum_investment.toLocaleString()}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-[9px] uppercase text-[#8FAEDB] tracking-[0.15em] font-bold">Term</div>
-                    <div className="text-sm text-white font-bold">{deal.term_years} Years</div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {deal.tags.map((tag, idx) => (
-                    <span key={idx} className="text-[8px] px-2 py-0.5 rounded bg-white/5 text-[#8FAEDB] border border-white/5 uppercase tracking-widest font-bold">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck size={14} className="text-[#00E0C6]" />
-                  <span className="text-[9px] text-[#8FAEDB] uppercase font-bold tracking-tighter">Verified Asset</span>
-                </div>
-                <Button onClick={() => onAllocate(deal)} className="text-[10px] px-4 py-2 flex items-center gap-2">
-                  <Landmark size={12} />
-                  Invest Now
-                </Button>
-              </div>
-            </div>
-          </Card>
+      {/* Deal Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {deals.map((deal) => (
+          <DealCard key={deal.id} deal={deal} onAllocate={onAllocate} />
         ))}
       </div>
     </div>
   );
 };
+
+const DealCard: React.FC<{ deal: Deal; onAllocate: (d: Deal) => void }> = ({ deal, onAllocate }) => (
+  <div
+    className="rounded-sm overflow-hidden flex flex-col transition-all duration-300 group"
+    style={{ background: T.surface, border: `1px solid ${T.border}` }}
+    onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}40`; }}
+    onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; }}
+  >
+    {/* Image */}
+    <div className="relative h-44 overflow-hidden flex-shrink-0">
+      <img
+        src={deal.image_url}
+        alt={deal.title}
+        className="w-full h-full object-cover opacity-60 group-hover:opacity-75 group-hover:scale-105 transition-all duration-500"
+      />
+      <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${T.surface} 0%, transparent 60%)` }} />
+      <div className="absolute top-3 left-3 flex gap-1.5">
+        <Badge variant="jade">Open</Badge>
+        <Badge variant="neutral">{deal.asset_class}</Badge>
+      </div>
+
+      {/* Progress overlay */}
+      <div className="absolute bottom-3 left-4 right-4 space-y-1">
+        <div className="flex justify-between items-center">
+          <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: T.textSub }}>Funded</span>
+          <span className="text-[10px] font-black" style={{ color: T.jade }}>{deal.progress}%</span>
+        </div>
+        <ProgressBar value={deal.progress} color={T.jade} />
+      </div>
+    </div>
+
+    {/* Content */}
+    <div className="flex-1 flex flex-col p-5 space-y-4">
+      <div>
+        <h3 className="text-sm font-black uppercase tracking-wide transition-colors group-hover:text-amber-400" style={{ color: T.text }}>
+          {deal.title}
+        </h3>
+        <div className="flex items-center gap-1.5 mt-1">
+          <MapPin size={10} style={{ color: T.gold }} />
+          <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>
+            {deal.location} · {deal.sponsor}
+          </span>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div
+        className="grid grid-cols-2 gap-3 py-4"
+        style={{ borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}
+      >
+        {[
+          { label: 'Target IRR', value: `${deal.projected_irr}%`, accent: T.gold },
+          { label: 'Cash Yield', value: `${deal.cash_yield}%`, accent: T.jade },
+          { label: 'Min. Investment', value: `$${deal.minimum_investment.toLocaleString()}`, accent: T.text },
+          { label: 'Term', value: `${deal.term_years} yrs`, accent: T.text },
+        ].map((stat) => (
+          <div key={stat.label} className="space-y-1">
+            <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: T.textDim }}>{stat.label}</p>
+            <p className="text-sm font-black" style={{ color: stat.accent }}>{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-1.5">
+        {deal.tags.map((tag) => (
+          <span
+            key={tag}
+            className="text-[8px] px-2 py-0.5 rounded-sm font-black uppercase tracking-widest"
+            style={{ background: T.raised, color: T.textDim, border: `1px solid ${T.border}` }}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-1" style={{ borderTop: `1px solid ${T.border}` }}>
+        <div className="flex items-center gap-1.5">
+          <ShieldCheck size={12} style={{ color: T.jade }} />
+          <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>
+            Verified
+          </span>
+        </div>
+        <Button onClick={() => onAllocate(deal)} size="sm">
+          <Landmark size={11} /> Invest
+        </Button>
+      </div>
+    </div>
+  </div>
+);
