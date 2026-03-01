@@ -4,6 +4,7 @@ import { MOCK_ACCOUNTS } from '../constants';
 import { Button, Badge, T } from './UIElements';
 import { Landmark, FileText, CreditCard, Shield, AlertTriangle, Building2, Copy, Info, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
+import { StripeCardForm } from './StripeCardForm';
 
 interface InvestmentModalProps {
   deal: Deal;
@@ -30,6 +31,7 @@ export const InvestmentModal: React.FC<InvestmentModalProps> = ({
   const [fundingMethod, setFundingMethod] = useState<FundingMethod | null>(null);
   const [iraAck, setIraAck] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [cardToken, setCardToken] = useState<string | null>(null);
 
   // Track when the investor opens the allocation flow.
   useEffect(() => {
@@ -58,7 +60,11 @@ export const InvestmentModal: React.FC<InvestmentModalProps> = ({
     setSubmitting(false);
   };
 
-  const canFund = fundingMethod && (fundingMethod !== 'IRA' || iraAck) && !submitting;
+  const canFund =
+    fundingMethod &&
+    (fundingMethod !== 'IRA' || iraAck) &&
+    (fundingMethod !== 'CC' || !!cardToken) &&
+    !submitting;
 
   return (
     <div
@@ -285,17 +291,7 @@ export const InvestmentModal: React.FC<InvestmentModalProps> = ({
                           </div>
                         )}
                         {opt.id === 'CC' && (
-                          <div className="space-y-3">
-                            {[
-                              { l: 'Name', v: userFullName },
-                              { l: 'Card', v: '**** **** **** 4242' },
-                            ].map((f) => (
-                              <div key={f.l} className="space-y-1">
-                                <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: T.textDim }}>{f.l}</p>
-                                <div className="px-3 py-2 rounded-sm text-xs font-bold" style={{ background: T.raised, color: T.text }}>{f.v}</div>
-                              </div>
-                            ))}
-                          </div>
+                          <StripeCardForm onAuthorized={setCardToken} tokenId={cardToken} />
                         )}
                         {opt.id === 'IRA' && (
                           <div className="space-y-4">
