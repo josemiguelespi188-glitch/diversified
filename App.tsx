@@ -16,6 +16,7 @@ import { Button, Badge, T } from './components/UIElements';
 import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType } from './types';
 import { MOCK_ACCOUNTS } from './constants';
 import { Shield, BarChart2, Users, Zap, ArrowRight, CheckCircle } from 'lucide-react';
+import { trackEvent, trackPageView, setUserId } from './lib/analytics';
 
 type AppState = 'LANDING' | 'AUTH' | 'ONBOARDING' | 'PORTAL';
 
@@ -225,12 +226,29 @@ const SettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => (
   </div>
 );
 
+// Map portal view keys to human-readable page titles for analytics.
+const VIEW_TITLES: Record<string, string> = {
+  dashboard:     'Portfolio Overview',
+  portfolio:     'Deal Marketplace',
+  accounts:      'Investment Accounts',
+  accreditation: 'Accreditation Hub',
+  distributions: 'Distributions',
+  documents:     'Documents',
+  support:       'Support',
+  settings:      'Settings',
+};
+
 const Portal: React.FC<{ user: User; onLogout: () => void; onUpdateUser: (data: Partial<User>) => void }> = ({ user, onLogout, onUpdateUser }) => {
   const [currentView, setView] = useState('dashboard');
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [requests, setRequests] = useState<InvestmentRequest[]>([]);
   const [accounts, setAccounts] = useState<InvestmentAccount[]>(MOCK_ACCOUNTS);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Track every in-portal navigation as a page_view.
+  useEffect(() => {
+    trackPageView(`/portal/${currentView}`, VIEW_TITLES[currentView] ?? currentView);
+  }, [currentView]);
 
   const handleInvestmentSubmit = (data: { dealId: string; dealName: string; accountId: string; amount: number; status: string }) => {
     const newRequest: InvestmentRequest = {
@@ -302,21 +320,44 @@ const Portal: React.FC<{ user: User; onLogout: () => void; onUpdateUser: (data: 
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
+const APP_STATE_PATHS: Record<AppState, { path: string; title: string }> = {
+  LANDING:    { path: '/',            title: 'Landing'    },
+  AUTH:       { path: '/auth',        title: 'Sign In'    },
+  ONBOARDING: { path: '/onboarding',  title: 'Onboarding' },
+  PORTAL:     { path: '/portal',      title: 'Portal'     },
+};
+
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('LANDING');
   const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => { window.scrollTo({ top: 0 }); }, [appState]);
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+    // Track top-level state transitions (landing, auth, onboarding).
+    // Portal internal navigation is tracked separately inside Portal.
+    if (appState !== 'PORTAL') {
+      const { path, title } = APP_STATE_PATHS[appState];
+      trackPageView(path, title);
+    }
+  }, [appState]);
 
   const handleLoginSuccess = (userData: User) => {
+    // Associate all future events with this user.
+    setUserId(userData.id);
     setUser(userData);
     setAppState(userData.onboarded ? 'PORTAL' : 'ONBOARDING');
+  };
+
+  const handleLogout = () => {
+    trackEvent('session_end_custom');
+    setUser(null);
+    setAppState('LANDING');
   };
 
   if (appState === 'LANDING')    return <LandingPage onStart={() => setAppState('AUTH')} />;
   if (appState === 'AUTH')       return <Auth onSuccess={handleLoginSuccess} onBack={() => setAppState('LANDING')} />;
   if (appState === 'ONBOARDING' && user) return <Onboarding user={user} onComplete={() => { setUser({ ...user, onboarded: true }); setAppState('PORTAL'); }} />;
-  if (appState === 'PORTAL' && user)     return <Portal user={user} onLogout={() => { setUser(null); setAppState('LANDING'); }} onUpdateUser={(d) => setUser({ ...user!, ...d })} />;
+  if (appState === 'PORTAL' && user)     return <Portal user={user} onLogout={handleLogout} onUpdateUser={(d) => setUser({ ...user!, ...d })} />;
   return null;
 };
 

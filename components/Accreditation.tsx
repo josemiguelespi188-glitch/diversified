@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, Badge, Button, Modal, T } from './UIElements';
 import { ShieldCheck, Upload, CheckCircle2, FileText, Clock, Landmark, Users, Briefcase, User, FileUp, X } from 'lucide-react';
 import { DocumentStatus, InvestmentAccountType, InvestmentAccount } from '../types';
+import { trackEvent } from '../lib/analytics';
 
 interface AccreditationProps {
   user: any;
@@ -30,6 +31,12 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
   const [uploadDoc, setUploadDoc] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const completedTracked = useRef(false);
+
+  // Track when the user enters the accreditation hub.
+  useEffect(() => {
+    trackEvent('accreditation_started');
+  }, []);
 
   const requiredEntityDocs = useMemo(() => {
     const s = new Set<string>();
@@ -41,10 +48,19 @@ export const Accreditation: React.FC<AccreditationProps> = ({ user, accounts }) 
   const done = [...uploaded].filter((d) => GLOBAL_DOCS.includes(d) || requiredEntityDocs.includes(d)).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
+  // Fire accreditation_completed exactly once when all docs are uploaded.
+  useEffect(() => {
+    if (pct === 100 && !completedTracked.current) {
+      completedTracked.current = true;
+      trackEvent('accreditation_completed');
+    }
+  }, [pct]);
+
   const docStatus = (name: string) => uploaded.has(name) ? DocumentStatus.VERIFIED : DocumentStatus.NOT_UPLOADED;
 
   const handleUpload = async () => {
     if (!uploadDoc || !fileName) return;
+    trackEvent('button_click', { button_name: 'upload_document', page: 'accreditation', extra_context: uploadDoc });
     setUploading(true);
     await new Promise((r) => setTimeout(r, 1500));
     setUploaded((prev) => new Set(prev).add(uploadDoc));

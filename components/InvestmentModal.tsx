@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Deal, RequestStatus } from '../types';
 import { MOCK_ACCOUNTS } from '../constants';
 import { Button, Badge, T } from './UIElements';
 import { Landmark, FileText, CreditCard, Shield, AlertTriangle, Building2, Copy, Info, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { trackEvent } from '../lib/analytics';
 
 interface InvestmentModalProps {
   deal: Deal;
@@ -30,6 +31,11 @@ export const InvestmentModal: React.FC<InvestmentModalProps> = ({
   const [iraAck, setIraAck] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Track when the investor opens the allocation flow.
+  useEffect(() => {
+    trackEvent('allocation_started', { deal_id: deal.id });
+  }, [deal.id]);
+
   const isVerified = (id: string) => id === 'acc_ind';
 
   const handleNext = () => {
@@ -39,8 +45,15 @@ export const InvestmentModal: React.FC<InvestmentModalProps> = ({
 
   const handleSubmit = async () => {
     setSubmitting(true);
+    trackEvent('button_click', { button_name: 'confirm_funding', page: 'investment_modal', extra_context: deal.id });
     await new Promise((r) => setTimeout(r, 1800));
+    const selectedAccount = MOCK_ACCOUNTS.find((a) => a.id === account);
     onSubmit({ dealId: deal.id, dealName: deal.title, accountId: account, amount, status: RequestStatus.PENDING_FUNDING });
+    trackEvent('allocation_submitted', {
+      deal_id:      deal.id,
+      amount,
+      account_type: selectedAccount?.type ?? 'unknown',
+    });
     setStep(5);
     setSubmitting(false);
   };

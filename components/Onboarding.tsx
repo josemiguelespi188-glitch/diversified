@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Input, Select, T } from './UIElements';
 import { User, InvestmentAccountType } from '../types';
 import { CheckCircle, Shield, Info } from 'lucide-react';
+import { trackEvent } from '../lib/analytics';
 
 interface OnboardingProps {
   user: User;
@@ -254,11 +255,28 @@ export const Onboarding: React.FC<OnboardingProps> = ({ user, onComplete }) => {
                 </Button>
               )}
               {step < 3 ? (
-                <Button type="button" onClick={() => setStep((s) => s + 1)} className={step === 1 ? 'w-full' : 'flex-[2]'} size="lg">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const nextStep = step + 1;
+                    if (nextStep === 3) trackEvent('accreditation_started');
+                    setStep(nextStep);
+                  }}
+                  className={step === 1 ? 'w-full' : 'flex-[2]'}
+                  size="lg"
+                >
                   Continue →
                 </Button>
               ) : (
-                <Button type="button" onClick={onComplete} className="flex-[2]" size="lg">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    trackEvent('account_created', { account_type: user.account_type ?? 'unknown' });
+                    onComplete();
+                  }}
+                  className="flex-[2]"
+                  size="lg"
+                >
                   <Shield size={14} /> Complete & Enter Portal
                 </Button>
               )}

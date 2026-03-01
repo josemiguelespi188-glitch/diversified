@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Input, Select, T } from './UIElements';
 import { InvestmentAccountType } from '../types';
 import { ArrowRight, LogIn, UserPlus, LayoutDashboard, Lock } from 'lucide-react';
+import { trackEvent } from '../lib/analytics';
 
 interface AuthProps {
   onSuccess: (userData: any) => void;
@@ -49,13 +50,26 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
 
   const handleDemoAccess = () => {
     setLoading(true);
-    setTimeout(() => { onSuccess(DEMO_USER); setLoading(false); }, 500);
+    trackEvent('button_click', { button_name: 'demo_access', page: 'auth' });
+    trackEvent('login_started');
+    setTimeout(() => {
+      trackEvent('login_success', { has_previous_account: true });
+      onSuccess(DEMO_USER);
+      setLoading(false);
+    }, 500);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const isLogin = view === 'login';
+    trackEvent('button_click', { button_name: isLogin ? 'sign_in_submit' : 'create_account_submit', page: 'auth' });
     setTimeout(() => {
+      if (isLogin) {
+        trackEvent('login_success', { has_previous_account: true });
+      } else {
+        trackEvent('account_created', { account_type: formData.account_type });
+      }
       onSuccess({ ...formData, id: 'usr_' + Math.random().toString(36).substr(2, 9), onboarded: false });
       setLoading(false);
     }, 400);
@@ -95,7 +109,10 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
           {options.map((opt) => (
             <button
               key={opt.id}
-              onClick={() => setView(opt.id as 'login' | 'signup')}
+              onClick={() => {
+                trackEvent(opt.id === 'login' ? 'login_started' : 'signup_started');
+                setView(opt.id as 'login' | 'signup');
+              }}
               className="w-full flex items-center justify-between p-5 rounded-sm transition-all duration-200 group"
               style={{ background: T.surface, border: `1px solid ${T.border}` }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${opt.accent}40`; e.currentTarget.style.background = `${opt.accent}06`; }}

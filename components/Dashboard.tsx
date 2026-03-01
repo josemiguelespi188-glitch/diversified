@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { TrendingUp, Layers, Clock, BarChart2, Download, ArrowRight } from 'lucide-react';
 import { Deal, InvestmentRequest, RequestStatus } from '../types';
 import { MOCK_ACCOUNTS, MOCK_DEALS, MOCK_REQUESTS } from '../constants';
+import { trackEvent } from '../lib/analytics';
 
 const STRATEGY_COLORS: Record<string, string> = {
   Multifamily:   T.gold,
@@ -33,7 +34,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfoli
   const [ledger, setLedger] = useState<InvestmentRequest[]>([]);
 
   useEffect(() => {
-    setLedger(incoming && incoming.length > 0 ? incoming : MOCK_REQUESTS);
+    const data = incoming && incoming.length > 0 ? incoming : MOCK_REQUESTS;
+    setLedger(data);
+    const hasInvestment = data.some((r) => r.status === RequestStatus.FUNDED);
+    const dealsCount = new Set(data.filter((r) => r.status === RequestStatus.FUNDED).map((r) => r.deal_id)).size;
+    trackEvent('portfolio_viewed', { has_investment: hasInvestment, deals_count: dealsCount });
   }, [incoming]);
 
   const filtered = useMemo(
@@ -69,6 +74,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfoli
   }, [filtered]);
 
   const handleStatusChange = (id: string, status: string) => {
+    if (status === RequestStatus.FUNDED) {
+      const row = ledger.find((r) => r.id === id);
+      if (row) {
+        trackEvent('allocation_funded', {
+          deal_id: row.deal_id,
+          amount:  row.amount,
+        });
+      }
+    }
     setLedger((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
   };
 
@@ -283,7 +297,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfoli
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] uppercase tracking-widest" style={{ color: T.textDim }}>{deal.progress}% Funded</span>
                   <button
-                    onClick={() => onAllocate(deal)}
+                    onClick={() => {
+                      trackEvent('button_click', { button_name: 'allocate', page: 'dashboard', extra_context: deal.id });
+                      onAllocate(deal);
+                    }}
                     className="text-[10px] font-black uppercase tracking-widest transition-colors hover:text-amber-400"
                     style={{ color: T.gold }}
                   >
