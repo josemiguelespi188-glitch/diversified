@@ -8,7 +8,6 @@ import { Accreditation } from './components/Accreditation';
 import { Accounts } from './components/Accounts';
 import { ProfilePanel } from './components/ProfilePanel';
 import { Auth } from './components/Auth';
-import { Onboarding } from './components/Onboarding';
 import { Distributions } from './components/Distributions';
 import { Documents } from './components/Documents';
 import { Support } from './components/Support';
@@ -16,8 +15,9 @@ import { Button, Badge, T } from './components/UIElements';
 import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType } from './types';
 import { MOCK_ACCOUNTS } from './constants';
 import { Shield, BarChart2, Users, Zap, ArrowRight, CheckCircle } from 'lucide-react';
+import { getSession, onAuthStateChange, getProfile, upsertUserOnSignIn, signOut as supabaseSignOut } from './lib/supabase';
 
-type AppState = 'LANDING' | 'AUTH' | 'ONBOARDING' | 'PORTAL';
+type AppState = 'LANDING' | 'AUTH' | 'PORTAL';
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
@@ -305,18 +305,82 @@ const Portal: React.FC<{ user: User; onLogout: () => void; onUpdateUser: (data: 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('LANDING');
   const [user, setUser] = useState<User | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
 
   useEffect(() => { window.scrollTo({ top: 0 }); }, [appState]);
 
-  const handleLoginSuccess = (userData: User) => {
-    setUser(userData);
-    setAppState(userData.onboarded ? 'PORTAL' : 'ONBOARDING');
+  // Build a User object from a Supabase auth user + profile row and route to PORTAL.
+  const resolveAuthUser = async (authUser: { id: string; email?: string; user_metadata?: Record<string, string>; app_metadata?: Record<string, string> }) => {
+    const email = authUser.email ?? '';
+    const provider = authUser.app_metadata?.provider ?? 'email';
+    const metaName = authUser.user_metadata?.full_name ?? authUser.user_metadata?.name ?? '';
+
+    // Persist / update the user row in the database.
+    await upsertUserOnSignIn(authUser.id, email, metaName, provider);
+
+    // Fetch the full profile.
+    const { data: profile } = await getProfile(authUser.id);
+
+    const resolvedUser: User = {
+      id: authUser.id,
+      full_name: profile?.full_name || metaName || email.split('@')[0] || 'Investor',
+      email,
+      phone: profile?.phone ?? undefined,
+      country: profile?.country ?? undefined,
+      dob: profile?.dob ?? undefined,
+      account_type: (profile?.account_type as InvestmentAccountType) ?? InvestmentAccountType.INDIVIDUAL,
+      onboarded: profile?.onboarded ?? false,
+      identity_status: profile?.identity_status ?? undefined,
+      accreditation_status: profile?.accreditation_status ?? undefined,
+    };
+
+    setUser(resolvedUser);
+    setAppState('PORTAL');
   };
 
-  if (appState === 'LANDING')    return <LandingPage onStart={() => setAppState('AUTH')} />;
-  if (appState === 'AUTH')       return <Auth onSuccess={handleLoginSuccess} onBack={() => setAppState('LANDING')} />;
-  if (appState === 'ONBOARDING' && user) return <Onboarding user={user} onComplete={() => { setUser({ ...user, onboarded: true }); setAppState('PORTAL'); }} />;
-  if (appState === 'PORTAL' && user)     return <Portal user={user} onLogout={() => { setUser(null); setAppState('LANDING'); }} onUpdateUser={(d) => setUser({ ...user!, ...d })} />;
+  useEffect(() => {
+    // Restore existing session on page load (handles OAuth redirect return).
+    getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        resolveAuthUser(session.user).finally(() => setSessionLoading(false));
+      } else {
+        setSessionLoading(false);
+      }
+    });
+
+    // Listen for future auth state changes (sign-in / sign-out).
+    const { data: { subscription } } = onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+        resolveAuthUser(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setAppState('LANDING');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Demo access — no Supabase session, goes straight to PORTAL.
+  const handleDemoSuccess = (userData: User) => {
+    setUser(userData);
+    setAppState('PORTAL');
+  };
+
+  const handleLogout = async () => {
+    await supabaseSignOut();
+    setUser(null);
+    setAppState('LANDING');
+  };
+
+  // While checking for an existing session, show a blank screen in the app background color.
+  if (sessionLoading) {
+    return <div style={{ minHeight: '100vh', background: T.bg }} />;
+  }
+
+  if (appState === 'LANDING') return <LandingPage onStart={() => setAppState('AUTH')} />;
+  if (appState === 'AUTH')    return <Auth onSuccess={handleDemoSuccess} onBack={() => setAppState('LANDING')} />;
+  if (appState === 'PORTAL' && user) return <Portal user={user} onLogout={handleLogout} onUpdateUser={(d) => setUser({ ...user!, ...d })} />;
   return null;
 };
 

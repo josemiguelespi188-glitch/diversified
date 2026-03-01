@@ -18,12 +18,40 @@ export const signUp = (email: string, password: string, fullName: string) =>
     options: { data: { full_name: fullName } },
   });
 
+export const signInWithGoogle = () =>
+  supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin },
+  });
+
 export const signOut = () => supabase.auth.signOut();
 
 export const getSession = () => supabase.auth.getSession();
 
 export const onAuthStateChange = (cb: Parameters<typeof supabase.auth.onAuthStateChange>[0]) =>
   supabase.auth.onAuthStateChange(cb);
+
+// ─── User Persistence ────────────────────────────────────────────────────────
+// Creates a new user row on first sign-in; updates last_sign_in_at on return.
+// Requires the migration SQL below to have been run in the Supabase SQL Editor.
+
+export const upsertUserOnSignIn = (
+  userId: string,
+  email: string,
+  fullName: string,
+  authProvider: string,
+) =>
+  supabase.from('profiles').upsert(
+    {
+      id: userId,
+      full_name: fullName,
+      email,
+      auth_provider: authProvider,
+      last_sign_in_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' },
+  );
 
 // ─── Profiles ────────────────────────────────────────────────────────────────
 
@@ -87,10 +115,13 @@ export const getDocuments = (userId: string) =>
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
--- Profiles
+-- Profiles (users table — auth user id is the stable primary key)
 create table public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
   full_name text,
+  email text,                          -- indexed but NOT the primary key (email can change)
+  auth_provider text default 'email',  -- 'google' | 'email' | etc.
+  last_sign_in_at timestamptz,
   phone text,
   country text,
   dob date,
@@ -101,6 +132,7 @@ create table public.profiles (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+create index if not exists profiles_email_idx on public.profiles (email);
 
 -- Investment Accounts
 create table public.investment_accounts (
@@ -202,12 +234,23 @@ create policy "Users insert own requests" on public.investment_requests for inse
 create policy "Users view own distributions" on public.distributions for select using (auth.uid() = user_id);
 create policy "Users view own documents" on public.documents for select using (auth.uid() = user_id);
 
--- Auto-create profile on signup
+-- Auto-create profile on first sign-in (handles email + Google OAuth)
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, full_name)
-  values (new.id, new.raw_user_meta_data->>'full_name');
+  insert into public.profiles (id, full_name, email, auth_provider, last_sign_in_at)
+  values (
+    new.id,
+    new.raw_user_meta_data->>'full_name',
+    new.email,
+    new.raw_app_meta_data->>'provider',
+    now()
+  )
+  on conflict (id) do update set
+    email = excluded.email,
+    auth_provider = excluded.auth_provider,
+    last_sign_in_at = now(),
+    updated_at = now();
   return new;
 end;
 $$ language plpgsql security definer;
@@ -215,4 +258,11 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- ─── Migration: run this if the profiles table already exists ───────────────
+-- alter table public.profiles
+--   add column if not exists email text,
+--   add column if not exists auth_provider text default 'email',
+--   add column if not exists last_sign_in_at timestamptz;
+-- create index if not exists profiles_email_idx on public.profiles (email);
 */
