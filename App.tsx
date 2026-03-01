@@ -13,11 +13,14 @@ import { Distributions } from './components/Distributions';
 import { Documents } from './components/Documents';
 import { Support } from './components/Support';
 import { Button, Badge, T } from './components/UIElements';
+import { AdminLogin } from './components/AdminLogin';
+import { AdminPortal } from './components/AdminPortal';
+import { getAdminSession, AdminSession } from './lib/adminAuth';
 import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType } from './types';
 import { MOCK_ACCOUNTS } from './constants';
 import { Shield, BarChart2, Users, Zap, ArrowRight, CheckCircle } from 'lucide-react';
 
-type AppState = 'LANDING' | 'AUTH' | 'ONBOARDING' | 'PORTAL';
+type AppState = 'LANDING' | 'AUTH' | 'ONBOARDING' | 'PORTAL' | 'ADMIN_LOGIN' | 'ADMIN_PORTAL';
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
@@ -46,7 +49,7 @@ const StatPill: React.FC<{ value: string; label: string }> = ({ value, label }) 
   </div>
 );
 
-const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
+const LandingPage: React.FC<{ onStart: () => void; onAdminAccess: () => void }> = ({ onStart, onAdminAccess }) => {
   const principles = [
     { icon: Shield,   title: 'Committee-Led',        desc: 'Every deal passes a multi-stage review before reaching the platform. No exceptions.' },
     { icon: BarChart2, title: 'Institutional Reports', desc: 'Asset-level transparency, quarterly updates, and audit-grade documentation on every position.' },
@@ -200,8 +203,17 @@ const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
             ))}
           </div>
         </div>
-        <div className="max-w-6xl mx-auto mt-12 pt-8 text-center text-[9px] uppercase tracking-[0.3em]" style={{ borderTop: `1px solid ${T.border}`, color: T.textDim }}>
-          © 2025 DIVERSIFY CAPITAL. ALL RIGHTS RESERVED. NOT INVESTMENT ADVICE. ACCREDITED INVESTORS ONLY.
+        <div className="max-w-6xl mx-auto mt-12 pt-8 flex items-center justify-between" style={{ borderTop: `1px solid ${T.border}` }}>
+          <p className="text-[9px] uppercase tracking-[0.3em]" style={{ color: T.textDim }}>
+            © 2025 DIVERSIFY CAPITAL. ALL RIGHTS RESERVED. NOT INVESTMENT ADVICE. ACCREDITED INVESTORS ONLY.
+          </p>
+          <button
+            onClick={onAdminAccess}
+            className="text-[9px] uppercase tracking-widest transition-opacity opacity-30 hover:opacity-70"
+            style={{ color: T.textDim }}
+          >
+            Admin Portal
+          </button>
         </div>
       </footer>
     </div>
@@ -305,6 +317,7 @@ const Portal: React.FC<{ user: User; onLogout: () => void; onUpdateUser: (data: 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('LANDING');
   const [user, setUser] = useState<User | null>(null);
+  const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
 
   useEffect(() => { window.scrollTo({ top: 0 }); }, [appState]);
 
@@ -313,10 +326,18 @@ const App: React.FC = () => {
     setAppState(userData.onboarded ? 'PORTAL' : 'ONBOARDING');
   };
 
-  if (appState === 'LANDING')    return <LandingPage onStart={() => setAppState('AUTH')} />;
+  const handleAdminLoginSuccess = () => {
+    const s = getAdminSession();
+    setAdminSession(s);
+    setAppState('ADMIN_PORTAL');
+  };
+
+  if (appState === 'LANDING')    return <LandingPage onStart={() => setAppState('AUTH')} onAdminAccess={() => setAppState('ADMIN_LOGIN')} />;
   if (appState === 'AUTH')       return <Auth onSuccess={handleLoginSuccess} onBack={() => setAppState('LANDING')} />;
   if (appState === 'ONBOARDING' && user) return <Onboarding user={user} onComplete={() => { setUser({ ...user, onboarded: true }); setAppState('PORTAL'); }} />;
   if (appState === 'PORTAL' && user)     return <Portal user={user} onLogout={() => { setUser(null); setAppState('LANDING'); }} onUpdateUser={(d) => setUser({ ...user!, ...d })} />;
+  if (appState === 'ADMIN_LOGIN') return <AdminLogin onSuccess={handleAdminLoginSuccess} onBack={() => setAppState('LANDING')} />;
+  if (appState === 'ADMIN_PORTAL' && adminSession) return <AdminPortal session={adminSession} onLogout={() => { setAdminSession(null); setAppState('LANDING'); }} />;
   return null;
 };
 
