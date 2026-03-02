@@ -270,7 +270,8 @@ const InvestWithUs: React.FC<{
   onStart: () => void;
   onViewPortfolio: () => void;
   onSchedule: () => void;
-}> = ({ onStart, onViewPortfolio, onSchedule }) => {
+  onAdminAccess: () => void;
+}> = ({ onStart, onViewPortfolio, onSchedule, onAdminAccess }) => {
   const benefits = [
     { icon: Shield,     title: 'Institutional Access', desc: 'Access deal flow normally reserved for family offices and major institutions — min. investments from $20K.' },
     { icon: TrendingUp, title: '14.2% Avg. IRR',       desc: 'Our portfolio has delivered 14.2% average IRR across 38 closed deals, with consistent quarterly distributions.' },
@@ -547,8 +548,8 @@ const InvestWithUs: React.FC<{
 
           {/* Admin Portal Button — directly below the demo */}
           <div className="text-center mt-8 space-y-3">
-            <p className="text-xs" style={{ color: T.textDim }}>Already have access? Go directly to the investor portal.</p>
-            <Button onClick={onStart} size="lg">
+            <p className="text-xs" style={{ color: T.textDim }}>Already have access? Go directly to the admin portal.</p>
+            <Button onClick={onAdminAccess} size="lg">
               Access Admin Portal <ArrowRight size={14} />
             </Button>
           </div>
@@ -742,7 +743,8 @@ const RaiseCapital: React.FC<{ onSchedule: () => void }> = ({ onSchedule }) => {
 const LandingPage: React.FC<{
   onStart: () => void;
   onViewPortfolio: () => void;
-}> = ({ onStart, onViewPortfolio }) => {
+  onAdminAccess: () => void;
+}> = ({ onStart, onViewPortfolio, onAdminAccess }) => {
   const [tab, setTab] = useState<LandingTab>('invest');
   const [showSchedule, setShowSchedule] = useState(false);
 
@@ -751,7 +753,7 @@ const LandingPage: React.FC<{
       <Navbar onAccess={onStart} activeTab={tab} onTabChange={setTab} />
 
       {tab === 'invest'
-        ? <InvestWithUs onStart={onStart} onViewPortfolio={onViewPortfolio} onSchedule={() => setShowSchedule(true)} />
+        ? <InvestWithUs onStart={onStart} onViewPortfolio={onViewPortfolio} onSchedule={() => setShowSchedule(true)} onAdminAccess={onAdminAccess} />
         : <RaiseCapital onSchedule={() => setShowSchedule(true)} />
       }
 
@@ -980,6 +982,16 @@ const Portal: React.FC<{
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
+const ADMIN_USER: User = {
+  id: 'usr_admin_axis',
+  full_name: 'Axis Admin',
+  email: 'admin@axisplatform.com',
+  account_type: InvestmentAccountType.INDIVIDUAL,
+  onboarded: true,
+  accreditation_status: 'Verified' as const,
+  identity_status: 'Verified' as const,
+};
+
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('LANDING');
   const [user, setUser] = useState<User | null>(null);
@@ -991,8 +1003,13 @@ const App: React.FC = () => {
     setAppState(userData.onboarded ? 'PORTAL' : 'ONBOARDING');
   };
 
+  const handleAdminAccess = () => {
+    setUser(ADMIN_USER);
+    setAppState('PORTAL');
+  };
+
   if (appState === 'LANDING')
-    return <LandingPage onStart={() => setAppState('AUTH')} onViewPortfolio={() => setAppState('PORTFOLIO')} />;
+    return <LandingPage onStart={() => setAppState('AUTH')} onViewPortfolio={() => setAppState('PORTFOLIO')} onAdminAccess={handleAdminAccess} />;
 
   if (appState === 'PORTFOLIO')
     return <PublicPortfolioPage onStart={() => setAppState('AUTH')} onBack={() => setAppState('LANDING')} />;
