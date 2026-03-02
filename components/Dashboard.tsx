@@ -146,7 +146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAllocate, onViewPortfoli
   const [ledger, setLedger] = useState<InvestmentRequest[]>([]);
 
   useEffect(() => {
-    setLedger(incoming && incoming.length > 0 ? incoming : MOCK_REQUESTS);
+    setLedger(incoming ?? []);
   }, [incoming]);
 
   const filtered = useMemo(

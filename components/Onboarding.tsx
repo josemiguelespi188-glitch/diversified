@@ -204,39 +204,61 @@ export const Onboarding: React.FC<OnboardingProps> = ({ user, onComplete }) => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Select
-                      label="Net Worth Range"
-                      value={formData.net_worth_range}
-                      onChange={(e) => update('net_worth_range', e.target.value)}
-                    >
-                      <option value="1M-5M">$1M – $5M</option>
-                      <option value="5M-10M">$5M – $10M</option>
-                      <option value="10M+">$10M+</option>
-                    </Select>
-                    <Select
-                      label="Private Placement Experience"
-                      value={formData.previous_experience ? 'yes' : 'no'}
-                      onChange={(e) => update('previous_experience', e.target.value === 'yes')}
-                    >
-                      <option value="no">None / Limited</option>
-                      <option value="yes">Experienced</option>
-                    </Select>
-                  </div>
-
-                  {/* Attestations */}
-                  <div className="space-y-3 pt-2">
-                    {[
-                      'I understand private placements involve a high degree of risk and potential loss of capital.',
-                      'I can bear the economic risk of this investment for an indefinite period of time.',
-                      'I confirm all information provided is accurate and truthful.',
-                    ].map((term, i) => (
-                      <div key={i} className="flex gap-3 items-start">
-                        <input type="checkbox" required className="mt-0.5 accent-amber-500" />
-                        <p className="text-[10px] leading-relaxed" style={{ color: T.textSub }}>{term}</p>
+                  {formData.is_accredited ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Select
+                          label="Net Worth Range"
+                          value={formData.net_worth_range}
+                          onChange={(e) => update('net_worth_range', e.target.value)}
+                        >
+                          <option value="1M-5M">$1M – $5M</option>
+                          <option value="5M-10M">$5M – $10M</option>
+                          <option value="10M+">$10M+</option>
+                        </Select>
+                        <Select
+                          label="Private Placement Experience"
+                          value={formData.previous_experience ? 'yes' : 'no'}
+                          onChange={(e) => update('previous_experience', e.target.value === 'yes')}
+                        >
+                          <option value="no">None / Limited</option>
+                          <option value="yes">Experienced</option>
+                        </Select>
                       </div>
-                    ))}
-                  </div>
+
+                      {/* Attestations */}
+                      <div className="space-y-3 pt-2">
+                        {[
+                          'I understand private placements involve a high degree of risk and potential loss of capital.',
+                          'I can bear the economic risk of this investment for an indefinite period of time.',
+                          'I confirm all information provided is accurate and truthful.',
+                        ].map((term, i) => (
+                          <div key={i} className="flex gap-3 items-start">
+                            <input type="checkbox" required className="mt-0.5 accent-amber-500" />
+                            <p className="text-[10px] leading-relaxed" style={{ color: T.textSub }}>{term}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div
+                      className="py-10 text-center space-y-3 rounded-sm"
+                      style={{ background: T.raised, border: `1px solid ${T.border}` }}
+                    >
+                      <div
+                        className="w-12 h-12 rounded-sm flex items-center justify-center mx-auto"
+                        style={{ background: T.goldFaint, border: `1px solid ${T.gold}40` }}
+                      >
+                        <Shield size={22} style={{ color: T.gold }} />
+                      </div>
+                      <p className="text-sm font-black uppercase tracking-widest" style={{ color: T.text }}>
+                        Accreditation Pending
+                      </p>
+                      <p className="text-xs max-w-sm mx-auto leading-relaxed" style={{ color: T.textSub }}>
+                        You can complete accreditation later from your profile. Some deals require verified accredited status to invest.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </>
             )}
