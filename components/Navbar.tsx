@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Button, T } from './UIElements';
 
-export const Navbar: React.FC<{ onAccess: () => void }> = ({ onAccess }) => {
+export type LandingTab = 'invest' | 'raise';
+
+interface NavbarProps {
+  onAccess: () => void;
+  activeTab: LandingTab;
+  onTabChange: (tab: LandingTab) => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onAccess, activeTab, onTabChange }) => {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -23,32 +31,39 @@ export const Navbar: React.FC<{ onAccess: () => void }> = ({ onAccess }) => {
         {/* Logo */}
         <div className="flex items-center gap-2.5">
           <div className="relative w-7 h-7">
-            <div
-              className="absolute inset-0 rotate-45 rounded-sm"
-              style={{ background: T.gold }}
-            />
-            <div
-              className="absolute inset-1.5 rotate-45 rounded-sm"
-              style={{ background: T.bg }}
-            />
+            <div className="absolute inset-0 rotate-45 rounded-sm" style={{ background: T.gold }} />
+            <div className="absolute inset-1.5 rotate-45 rounded-sm" style={{ background: T.bg }} />
           </div>
           <span className="text-base font-black tracking-[0.15em] uppercase" style={{ color: T.text }}>
             Diversify
           </span>
         </div>
 
-        {/* Links */}
-        <div className="hidden md:flex items-center gap-8">
-          {['Philosophy', 'Infrastructure', 'Sponsors', 'FAQ'].map((item) => (
-            <a
-              key={item}
-              href={`#${item.toLowerCase()}`}
-              className="text-[11px] font-bold uppercase tracking-widest transition-colors duration-200 hover:text-amber-400"
-              style={{ color: T.textSub }}
-            >
-              {item}
-            </a>
-          ))}
+        {/* Tab Switcher */}
+        <div
+          className="hidden md:flex items-center gap-1 p-1 rounded-sm"
+          style={{ background: T.surface, border: `1px solid ${T.border}` }}
+        >
+          <button
+            onClick={() => onTabChange('invest')}
+            className="px-6 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all duration-200"
+            style={{
+              background: activeTab === 'invest' ? T.gold : 'transparent',
+              color: activeTab === 'invest' ? '#000' : T.textSub,
+            }}
+          >
+            Invest With Us
+          </button>
+          <button
+            onClick={() => onTabChange('raise')}
+            className="px-6 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all duration-200"
+            style={{
+              background: activeTab === 'raise' ? T.gold : 'transparent',
+              color: activeTab === 'raise' ? '#000' : T.textSub,
+            }}
+          >
+            Raise Capital
+          </button>
         </div>
 
         <Button onClick={onAccess} size="sm">
