@@ -3,6 +3,15 @@ import { Button, Input, Select, T } from './UIElements';
 import { InvestmentAccountType } from '../types';
 import { ArrowRight, LogIn, UserPlus, LayoutDashboard, Lock, ShieldCheck, ChevronLeft } from 'lucide-react';
 
+const GoogleIcon: React.FC = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
+    <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
+    <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
+    <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
+  </svg>
+);
+
 interface AuthProps {
   onSuccess: (userData: any) => void;
   onBack: () => void;
@@ -60,6 +69,26 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack, onAdminAccess }) 
       onSuccess({ ...formData, id: 'usr_' + Math.random().toString(36).substr(2, 9), onboarded: false });
       setLoading(false);
     }, 400);
+  };
+
+  const handleGoogleAuth = () => {
+    setLoading(true);
+    // Simulate Google OAuth popup → resolves after short delay
+    setTimeout(() => {
+      const isLogin = view === 'login';
+      const googleUser = {
+        id: 'usr_google_' + Math.random().toString(36).substr(2, 9),
+        full_name: 'Google User',
+        email: 'user@gmail.com',
+        account_type: InvestmentAccountType.INDIVIDUAL,
+        // Sign In → already onboarded; Open Account → send to Onboarding
+        onboarded: isLogin,
+        accreditation_status: isLogin ? ('Verified' as const) : undefined,
+        identity_status: isLogin ? ('Verified' as const) : undefined,
+      };
+      setLoading(false);
+      onSuccess(googleUser);
+    }, 900);
   };
 
   // ── Selection view ──────────────────────────────────────────────────────────
@@ -217,6 +246,41 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack, onAdminAccess }) 
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-8 space-y-5">
+
+          {/* Google Auth */}
+          <button
+            type="button"
+            onClick={handleGoogleAuth}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-sm transition-all duration-200"
+            style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#4285F440'; e.currentTarget.style.background = '#4285F408'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.raised; }}
+          >
+            {loading ? (
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>Connecting…</span>
+            ) : (
+              <>
+                <GoogleIcon />
+                <span className="text-[11px] font-bold uppercase tracking-widest">
+                  {isLogin ? 'Sign in with Google' : 'Continue with Google'}
+                </span>
+              </>
+            )}
+          </button>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full h-px" style={{ background: T.border }} />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-3 text-[9px] font-black uppercase tracking-[0.3em]" style={{ background: T.surface, color: T.textDim }}>
+                or continue with email
+              </span>
+            </div>
+          </div>
+
           {!isLogin && (
             <Input
               label="Full Legal Name"
