@@ -333,7 +333,7 @@ const App: React.FC = () => {
   };
 
   if (appState === 'LANDING')    return <LandingPage onStart={() => setAppState('AUTH')} onAdminAccess={() => setAppState('ADMIN_LOGIN')} />;
-  if (appState === 'AUTH')       return <Auth onSuccess={handleLoginSuccess} onBack={() => setAppState('LANDING')} />;
+  if (appState === 'AUTH')       return <Auth onSuccess={handleLoginSuccess} onBack={() => setAppState('LANDING')} onAdminAccess={() => setAppState('ADMIN_LOGIN')} />;
   if (appState === 'ONBOARDING' && user) return <Onboarding user={user} onComplete={() => { setUser({ ...user, onboarded: true }); setAppState('PORTAL'); }} />;
   if (appState === 'PORTAL' && user)     return <Portal user={user} onLogout={() => { setUser(null); setAppState('LANDING'); }} onUpdateUser={(d) => setUser({ ...user!, ...d })} />;
   if (appState === 'ADMIN_LOGIN') return <AdminLogin onSuccess={handleAdminLoginSuccess} onBack={() => setAppState('LANDING')} />;

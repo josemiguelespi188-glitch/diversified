@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Button, Input, Select, T } from './UIElements';
 import { InvestmentAccountType } from '../types';
-import { ArrowRight, LogIn, UserPlus, LayoutDashboard, Lock } from 'lucide-react';
+import { ArrowRight, LogIn, UserPlus, LayoutDashboard, Lock, ShieldCheck } from 'lucide-react';
 
 interface AuthProps {
   onSuccess: (userData: any) => void;
   onBack: () => void;
+  onAdminAccess?: () => void;
 }
 
 const Logo: React.FC<{ onBack?: () => void }> = ({ onBack }) => (
@@ -37,7 +38,7 @@ const DEMO_USER = {
   identity_status: 'Verified' as const,
 };
 
-export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
+export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack, onAdminAccess }) => {
   const [view, setView] = useState<'selection' | 'login' | 'signup'>('selection');
   const [formData, setFormData] = useState({
     full_name: '',
@@ -113,6 +114,28 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
               <ArrowRight size={15} style={{ color: T.textDim }} />
             </button>
           ))}
+
+          {/* Admin Portal */}
+          {onAdminAccess && (
+            <button
+              onClick={onAdminAccess}
+              className="w-full flex items-center justify-between p-5 rounded-sm transition-all duration-200"
+              style={{ background: T.surface, border: `1px solid ${T.border}` }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = `#a78bfa40`; e.currentTarget.style.background = `#a78bfa08`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.surface; }}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-sm flex items-center justify-center" style={{ background: '#a78bfa15', border: '1px solid #a78bfa30' }}>
+                  <ShieldCheck size={17} style={{ color: '#a78bfa' }} />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.text }}>Admin Portal</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: T.textDim }}>Platform management access</p>
+                </div>
+              </div>
+              <ArrowRight size={15} style={{ color: T.textDim }} />
+            </button>
+          )}
 
           {/* Divider */}
           <div className="relative py-4">
