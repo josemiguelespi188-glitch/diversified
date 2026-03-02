@@ -270,7 +270,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAdminAccess
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button onClick={onStart} size="lg">
-              Access the Platform <ArrowRight size={14} />
+              Invest Now <ArrowRight size={14} />
             </Button>
             <Button variant="outline" size="lg" onClick={() => scrollTo('raise')}>
               Raise Capital With Us
