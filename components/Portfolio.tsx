@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { MOCK_DEALS } from '../constants';
-import { Badge, Button, ProgressBar, SectionHeading, T } from './UIElements';
-import { MapPin, ShieldCheck, Landmark, SlidersHorizontal } from 'lucide-react';
+import { Badge, Button, ProgressBar, T } from './UIElements';
+import { MapPin, ShieldCheck, SlidersHorizontal, ArrowRight } from 'lucide-react';
 import { Deal } from '../types';
+import { DealDetailModal } from './DealDetailModal';
 
 const STRATEGIES = ['All', 'Multifamily', 'Industrial', 'Private Debt', 'Development'];
 
@@ -11,6 +12,7 @@ export const Portfolio: React.FC<{
   hideHeader?: boolean;
 }> = ({ onAllocate, hideHeader = false }) => {
   const [filter, setFilter] = useState('All');
+  const [detailDeal, setDetailDeal] = useState<Deal | null>(null);
 
   const deals = filter === 'All' ? MOCK_DEALS : MOCK_DEALS.filter((d) => d.strategy === filter);
 
@@ -58,17 +60,27 @@ export const Portfolio: React.FC<{
       {/* Deal Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {deals.map((deal) => (
-          <DealCard key={deal.id} deal={deal} onAllocate={onAllocate} />
+          <DealCard key={deal.id} deal={deal} onDetail={setDetailDeal} />
         ))}
       </div>
+
+      {/* Detail Modal */}
+      {detailDeal && (
+        <DealDetailModal
+          deal={detailDeal}
+          onClose={() => setDetailDeal(null)}
+          onInvest={(d) => { onAllocate(d); setDetailDeal(null); }}
+        />
+      )}
     </div>
   );
 };
 
-const DealCard: React.FC<{ deal: Deal; onAllocate: (d: Deal) => void }> = ({ deal, onAllocate }) => (
+const DealCard: React.FC<{ deal: Deal; onDetail: (d: Deal) => void }> = ({ deal, onDetail }) => (
   <div
-    className="rounded-sm overflow-hidden flex flex-col transition-all duration-300 group"
+    className="rounded-sm overflow-hidden flex flex-col transition-all duration-300 group cursor-pointer"
     style={{ background: T.surface, border: `1px solid ${T.border}` }}
+    onClick={() => onDetail(deal)}
     onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}40`; }}
     onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; }}
   >
@@ -84,8 +96,6 @@ const DealCard: React.FC<{ deal: Deal; onAllocate: (d: Deal) => void }> = ({ dea
         <Badge variant="jade">Open</Badge>
         <Badge variant="neutral">{deal.asset_class}</Badge>
       </div>
-
-      {/* Progress overlay */}
       <div className="absolute bottom-3 left-4 right-4 space-y-1">
         <div className="flex justify-between items-center">
           <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: T.textSub }}>Funded</span>
@@ -110,10 +120,7 @@ const DealCard: React.FC<{ deal: Deal; onAllocate: (d: Deal) => void }> = ({ dea
       </div>
 
       {/* Stats Grid */}
-      <div
-        className="grid grid-cols-2 gap-3 py-4"
-        style={{ borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}
-      >
+      <div className="grid grid-cols-2 gap-3 py-4" style={{ borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
         {[
           { label: 'Target IRR', value: `${deal.projected_irr}%`, accent: T.gold },
           { label: 'Cash Yield', value: `${deal.cash_yield}%`, accent: T.jade },
@@ -130,11 +137,7 @@ const DealCard: React.FC<{ deal: Deal; onAllocate: (d: Deal) => void }> = ({ dea
       {/* Tags */}
       <div className="flex flex-wrap gap-1.5">
         {deal.tags.map((tag) => (
-          <span
-            key={tag}
-            className="text-[8px] px-2 py-0.5 rounded-sm font-black uppercase tracking-widest"
-            style={{ background: T.raised, color: T.textDim, border: `1px solid ${T.border}` }}
-          >
+          <span key={tag} className="text-[8px] px-2 py-0.5 rounded-sm font-black uppercase tracking-widest" style={{ background: T.raised, color: T.textDim, border: `1px solid ${T.border}` }}>
             {tag}
           </span>
         ))}
@@ -144,13 +147,17 @@ const DealCard: React.FC<{ deal: Deal; onAllocate: (d: Deal) => void }> = ({ dea
       <div className="flex items-center justify-between pt-1" style={{ borderTop: `1px solid ${T.border}` }}>
         <div className="flex items-center gap-1.5">
           <ShieldCheck size={12} style={{ color: T.jade }} />
-          <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>
-            Verified
-          </span>
+          <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>Verified</span>
         </div>
-        <Button onClick={() => onAllocate(deal)} size="sm">
-          <Landmark size={11} /> Invest
-        </Button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDetail(deal); }}
+          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-sm transition-all"
+          style={{ background: T.goldFaint, color: T.gold, border: `1px solid ${T.gold}30` }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = T.gold; e.currentTarget.style.color = '#000'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = T.goldFaint; e.currentTarget.style.color = T.gold; }}
+        >
+          View Deal <ArrowRight size={10} />
+        </button>
       </div>
     </div>
   </div>

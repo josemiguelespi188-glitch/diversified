@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, Badge, Button, SectionHeading, ProgressBar, T, Table, TableRow, TableCell, EmptyState } from './UIElements';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { TrendingUp, Layers, Clock, BarChart2, Download, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, Layers, Clock, BarChart2, Download, ArrowRight } from 'lucide-react';
 import { Deal, InvestmentRequest, RequestStatus } from '../types';
 import { MOCK_ACCOUNTS, MOCK_DEALS, MOCK_REQUESTS } from '../constants';
 
@@ -28,122 +28,94 @@ const statusStyle = (status: string): { color: string; bg: string } => {
 
 const fmt = (n: number) => `$${n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M' : n.toLocaleString()}`;
 
-// ── Auto-scrolling deals carousel ──────────────────────────────────────────
+// ── Continuous marquee carousel ────────────────────────────────────────────
+const CARD_W = 300; // px
+const GAP    = 16;  // px
+// Duplicate deals for seamless loop
+const MARQUEE_DEALS = [...MOCK_DEALS, ...MOCK_DEALS];
+
 const DealsCarousel: React.FC<{ onAllocate: (deal: Deal) => void; onViewAll: () => void }> = ({ onAllocate, onViewAll }) => {
-  const [current, setCurrent] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const total = MOCK_DEALS.length;
-  const visible = 3;
-
-  const startTimer = () => {
-    timerRef.current = setInterval(() => {
-      setCurrent((c) => (c + 1) % total);
-    }, 3000);
-  };
-
-  useEffect(() => {
-    startTimer();
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
-
-  const pause = () => { if (timerRef.current) clearInterval(timerRef.current); };
-  const resume = () => startTimer();
-
-  const prev = () => { pause(); setCurrent((c) => (c - 1 + total) % total); resume(); };
-  const next = () => { pause(); setCurrent((c) => (c + 1) % total); resume(); };
-
-  // Build the 3 visible indices (wrapping)
-  const indices = Array.from({ length: visible }, (_, i) => (current + i) % total);
+  const trackW = MOCK_DEALS.length * (CARD_W + GAP);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.3em] mb-0.5" style={{ color: T.gold }}>Live Deal Flow</p>
-          <h2 className="text-base font-black uppercase tracking-tight" style={{ color: T.text }}>Active Opportunities</h2>
+    <>
+      <style>{`
+        @keyframes marquee {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-${trackW}px); }
+        }
+        .marquee-track {
+          animation: marquee ${MOCK_DEALS.length * 5}s linear infinite;
+          will-change: transform;
+        }
+        .marquee-track:hover { animation-play-state: paused; }
+      `}</style>
+
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] mb-0.5" style={{ color: T.gold }}>Live Deal Flow</p>
+            <h2 className="text-base font-black uppercase tracking-tight" style={{ color: T.text }}>Active Opportunities</h2>
+          </div>
+          <button
+            onClick={onViewAll}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all"
+            style={{ background: T.goldFaint, color: T.gold, border: `1px solid ${T.gold}40` }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = T.gold; e.currentTarget.style.color = '#000'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = T.goldFaint; e.currentTarget.style.color = T.gold; }}
+          >
+            More Options <ArrowRight size={11} />
+          </button>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Dot indicators */}
-          <div className="flex items-center gap-1.5">
-            {MOCK_DEALS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { pause(); setCurrent(i); resume(); }}
-                className="rounded-full transition-all duration-300"
-                style={{
-                  width:  i === current ? 16 : 5,
-                  height: 5,
-                  background: i === current ? T.gold : T.border,
-                }}
-              />
+
+        {/* Scrolling track */}
+        <div className="overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }}>
+          <div className="marquee-track flex" style={{ gap: GAP, width: trackW * 2 }}>
+            {MARQUEE_DEALS.map((deal, i) => (
+              <div
+                key={`${deal.id}-${i}`}
+                className="rounded-sm overflow-hidden group shrink-0"
+                style={{ width: CARD_W, background: T.surface, border: `1px solid ${T.border}`, transition: 'border-color 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}50`; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; }}
+              >
+                <div className="relative overflow-hidden" style={{ height: 140 }}>
+                  <img src={deal.image_url} alt={deal.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+                  <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${T.surface} 0%, transparent 60%)` }} />
+                  <div className="absolute top-3 left-3 flex gap-1.5">
+                    <Badge variant="gold">{deal.asset_class}</Badge>
+                    {deal.committee_approved && <Badge variant="jade">Approved</Badge>}
+                  </div>
+                  <div className="absolute bottom-3 right-3">
+                    <span className="text-xl font-black" style={{ color: T.gold }}>{deal.projected_irr}%</span>
+                    <span className="text-[9px] ml-1 font-bold uppercase" style={{ color: T.textDim }}>IRR</span>
+                  </div>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wide leading-tight truncate" style={{ color: T.text }}>{deal.title}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: T.textDim }}>{deal.location} · Min. ${(deal.minimum_investment / 1000).toFixed(0)}K</p>
+                  </div>
+                  <ProgressBar value={deal.progress} />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] uppercase tracking-widest" style={{ color: T.textDim }}>{deal.progress}% Funded</span>
+                    <button
+                      onClick={() => onAllocate(deal)}
+                      className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-sm transition-all"
+                      style={{ background: T.goldFaint, color: T.gold, border: `1px solid ${T.gold}30` }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = T.gold; e.currentTarget.style.color = '#000'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = T.goldFaint; e.currentTarget.style.color = T.gold; }}
+                    >
+                      Invest Now <ArrowRight size={10} />
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-          {/* Arrows */}
-          <div className="flex items-center gap-1">
-            <button onClick={prev} className="w-7 h-7 rounded-sm flex items-center justify-center transition-colors" style={{ background: T.surface, border: `1px solid ${T.border}`, color: T.textDim }}>
-              <ChevronLeft size={13} />
-            </button>
-            <button onClick={next} className="w-7 h-7 rounded-sm flex items-center justify-center transition-colors" style={{ background: T.surface, border: `1px solid ${T.border}`, color: T.textDim }}>
-              <ChevronRight size={13} />
-            </button>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onViewAll}>
-            View All <ArrowRight size={12} />
-          </Button>
         </div>
       </div>
-
-      <div
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-        onMouseEnter={pause}
-        onMouseLeave={resume}
-      >
-        {indices.map((idx) => {
-          const deal = MOCK_DEALS[idx];
-          return (
-            <div
-              key={`${deal.id}-${idx}`}
-              className="rounded-sm overflow-hidden group"
-              style={{ background: T.surface, border: `1px solid ${T.border}`, transition: 'border-color 0.2s' }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}50`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; }}
-            >
-              <div className="relative h-36 overflow-hidden">
-                <img src={deal.image_url} alt={deal.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
-                <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${T.surface} 0%, transparent 60%)` }} />
-                <div className="absolute top-3 left-3 flex gap-1.5">
-                  <Badge variant="gold">{deal.asset_class}</Badge>
-                  {deal.committee_approved && <Badge variant="jade">Approved</Badge>}
-                </div>
-                <div className="absolute bottom-3 right-3">
-                  <span className="text-xl font-black" style={{ color: T.gold }}>{deal.projected_irr}%</span>
-                  <span className="text-[9px] ml-1 font-bold uppercase" style={{ color: T.textDim }}>IRR</span>
-                </div>
-              </div>
-              <div className="p-4 space-y-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide leading-tight" style={{ color: T.text }}>{deal.title}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: T.textDim }}>{deal.location} · Min. ${(deal.minimum_investment / 1000).toFixed(0)}K</p>
-                </div>
-                <ProgressBar value={deal.progress} />
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] uppercase tracking-widest" style={{ color: T.textDim }}>{deal.progress}% Funded</span>
-                  <button
-                    onClick={() => onAllocate(deal)}
-                    className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-sm transition-all"
-                    style={{ background: T.goldFaint, color: T.gold, border: `1px solid ${T.gold}30` }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = T.gold; e.currentTarget.style.color = '#000'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = T.goldFaint; e.currentTarget.style.color = T.gold; }}
-                  >
-                    Invest Now <ArrowRight size={10} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    </>
   );
 };
 
