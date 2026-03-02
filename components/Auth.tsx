@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
 import { Button, Input, Select, T } from './UIElements';
 import { InvestmentAccountType } from '../types';
-import { ArrowRight, LogIn, UserPlus, LayoutDashboard, Lock } from 'lucide-react';
+import { ArrowRight, LogIn, UserPlus, LayoutDashboard, Lock, ShieldCheck, ChevronLeft, AlertCircle } from 'lucide-react';
+import { signInWithGoogle, signIn, signUp, isSupabaseConfigured } from '../lib/supabase';
+
+const GoogleIcon: React.FC = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
+    <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
+    <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
+    <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
+  </svg>
+);
 
 interface AuthProps {
   onSuccess: (userData: any) => void;
   onBack: () => void;
+  onAdminAccess?: () => void;
 }
 
 const Logo: React.FC<{ onBack?: () => void }> = ({ onBack }) => (
@@ -37,7 +48,7 @@ const DEMO_USER = {
   identity_status: 'Verified' as const,
 };
 
-export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
+export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack, onAdminAccess }) => {
   const [view, setView] = useState<'selection' | 'login' | 'signup'>('selection');
   const [formData, setFormData] = useState({
     full_name: '',
@@ -46,19 +57,81 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
     account_type: InvestmentAccountType.INDIVIDUAL,
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleDemoAccess = () => {
     setLoading(true);
     setTimeout(() => { onSuccess(DEMO_USER); setLoading(false); }, 500);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    setTimeout(() => {
-      onSuccess({ ...formData, id: 'usr_' + Math.random().toString(36).substr(2, 9), onboarded: false });
+
+    if (!isSupabaseConfigured) {
+      // Mock fallback (no Supabase credentials)
+      setTimeout(() => {
+        onSuccess({ ...formData, id: 'usr_' + Math.random().toString(36).substr(2, 9), onboarded: false });
+        setLoading(false);
+      }, 400);
+      return;
+    }
+
+    const isLogin = view === 'login';
+    if (isLogin) {
+      const { error: err } = await signIn(formData.email, formData.password);
+      if (err) {
+        setError(err.message === 'Invalid login credentials' ? 'Incorrect email or password.' : err.message);
+        setLoading(false);
+      }
+      // On success → onAuthStateChange in App.tsx handles navigation automatically
+    } else {
+      const { data, error: err } = await signUp(formData.email, formData.password, formData.full_name);
+      if (err) {
+        setError(err.message);
+        setLoading(false);
+      } else {
+        // Pass user data so App can route to Onboarding
+        onSuccess({
+          ...formData,
+          id: data.user?.id || 'usr_' + Math.random().toString(36).substr(2, 9),
+          onboarded: false,
+        });
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setError('');
+    setLoading(true);
+
+    if (!isSupabaseConfigured) {
+      // Mock fallback
+      setTimeout(() => {
+        const isLogin = view === 'login';
+        onSuccess({
+          id: 'usr_google_' + Math.random().toString(36).substr(2, 9),
+          full_name: 'Google User',
+          email: 'user@gmail.com',
+          account_type: InvestmentAccountType.INDIVIDUAL,
+          onboarded: isLogin,
+          accreditation_status: isLogin ? ('Verified' as const) : undefined,
+          identity_status: isLogin ? ('Verified' as const) : undefined,
+        });
+        setLoading(false);
+      }, 900);
+      return;
+    }
+
+    // Real Google OAuth — redirects to Google then back to app
+    const { error: err } = await signInWithGoogle();
+    if (err) {
+      setError(err.message);
       setLoading(false);
-    }, 400);
+    }
+    // On success: browser redirects to Google → returns to app → onAuthStateChange fires
   };
 
   // ── Selection view ──────────────────────────────────────────────────────────
@@ -114,7 +187,29 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             </button>
           ))}
 
-          {/* Divider — Development */}
+          {/* Admin Portal */}
+          {onAdminAccess && (
+            <button
+              onClick={onAdminAccess}
+              className="w-full flex items-center justify-between p-5 rounded-sm transition-all duration-200"
+              style={{ background: T.surface, border: `1px solid ${T.border}` }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = `#a78bfa40`; e.currentTarget.style.background = `#a78bfa08`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.surface; }}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-sm flex items-center justify-center" style={{ background: '#a78bfa15', border: '1px solid #a78bfa30' }}>
+                  <ShieldCheck size={17} style={{ color: '#a78bfa' }} />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.text }}>Admin Portal</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: T.textDim }}>Platform management access</p>
+                </div>
+              </div>
+              <ArrowRight size={15} style={{ color: T.textDim }} />
+            </button>
+          )}
+
+          {/* Divider */}
           <div className="relative py-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full h-px" style={{ background: T.border }} />
@@ -126,7 +221,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             </div>
           </div>
 
-          {/* Institutional Demo */}
+          {/* Demo */}
           <button
             onClick={handleDemoAccess}
             disabled={loading}
@@ -149,41 +244,6 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             <ArrowRight size={15} style={{ color: T.gold }} />
           </button>
 
-          {/* Divider — Admin Access */}
-          <div className="relative py-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full h-px" style={{ background: T.border }} />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="px-3 text-[9px] font-black uppercase tracking-[0.3em]" style={{ background: T.bg, color: T.textDim }}>
-                Admin Access
-              </span>
-            </div>
-          </div>
-
-          {/* Admin Portal */}
-          <button
-            onClick={handleDemoAccess}
-            disabled={loading}
-            className="w-full flex items-center justify-between p-5 rounded-sm transition-all duration-200"
-            style={{ background: T.raised, border: `1px solid ${T.border}` }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}40`; e.currentTarget.style.background = `${T.gold}06`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.raised; }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-9 h-9 rounded-sm flex items-center justify-center" style={{ background: T.raised, border: `1px solid ${T.gold}40` }}>
-                <LayoutDashboard size={17} style={{ color: T.gold }} />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.text }}>
-                  {loading ? 'Loading…' : 'Admin Portal'}
-                </p>
-                <p className="text-[10px] mt-0.5" style={{ color: T.textDim }}>Full admin access · Dashboard & portfolio</p>
-              </div>
-            </div>
-            <ArrowRight size={15} style={{ color: T.textDim }} />
-          </button>
-
           <p className="text-center text-[9px] uppercase tracking-widest pt-4" style={{ color: T.textDim }}>
             Authorized access only · Military-grade encryption
           </p>
@@ -198,12 +258,21 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: T.bg }}>
       <div className="absolute top-6 left-8">
-        <Logo onBack={() => setView('selection')} />
+        <Logo />
       </div>
 
       <AuthCard>
         {/* Header */}
-        <div className="px-8 pt-8 pb-6 text-center space-y-2" style={{ borderBottom: `1px solid ${T.border}` }}>
+        <div className="px-8 pt-6 pb-6 text-center space-y-2" style={{ borderBottom: `1px solid ${T.border}` }}>
+          <div className="flex justify-start mb-1">
+            <button
+              onClick={() => setView('selection')}
+              className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest transition-opacity hover:opacity-70"
+              style={{ color: T.textDim }}
+            >
+              <ChevronLeft size={12} /> Back
+            </button>
+          </div>
           <div
             className="w-10 h-10 rounded-sm flex items-center justify-center mx-auto mb-3"
             style={{ background: T.goldFaint, border: `1px solid ${T.gold}40` }}
@@ -220,6 +289,41 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-8 space-y-5">
+
+          {/* Google Auth */}
+          <button
+            type="button"
+            onClick={handleGoogleAuth}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-sm transition-all duration-200"
+            style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#4285F440'; e.currentTarget.style.background = '#4285F408'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.raised; }}
+          >
+            {loading ? (
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>Connecting…</span>
+            ) : (
+              <>
+                <GoogleIcon />
+                <span className="text-[11px] font-bold uppercase tracking-widest">
+                  {isLogin ? 'Sign in with Google' : 'Continue with Google'}
+                </span>
+              </>
+            )}
+          </button>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full h-px" style={{ background: T.border }} />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-3 text-[9px] font-black uppercase tracking-[0.3em]" style={{ background: T.surface, color: T.textDim }}>
+                or continue with email
+              </span>
+            </div>
+          </div>
+
           {!isLogin && (
             <Input
               label="Full Legal Name"
@@ -273,6 +377,13 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             </label>
           </div>
 
+          {error && (
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-sm" style={{ background: '#EF444415', border: '1px solid #EF444440' }}>
+              <AlertCircle size={13} style={{ color: '#EF4444', flexShrink: 0 }} />
+              <p className="text-[10px]" style={{ color: '#EF4444' }}>{error}</p>
+            </div>
+          )}
+
           <Button type="submit" className="w-full" size="lg" disabled={loading}>
             {loading ? 'Processing…' : isLogin ? 'Sign In' : 'Create Account'}
             <ArrowRight size={14} />
@@ -280,7 +391,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
 
           <button
             type="button"
-            onClick={() => setView(isLogin ? 'signup' : 'login')}
+            onClick={() => { setError(''); setView(isLogin ? 'signup' : 'login'); }}
             className="w-full text-center text-[10px] font-bold uppercase tracking-widest transition-colors hover:text-amber-400"
             style={{ color: T.textDim }}
           >

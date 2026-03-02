@@ -10,7 +10,6 @@ import {
   MessageCircle,
   TrendingUp,
   ChevronRight,
-  CalendarDays,
 } from 'lucide-react';
 import { T } from './UIElements';
 import { User as UserType, DocumentStatus } from '../types';
@@ -33,10 +32,6 @@ const NAV_REPORTS = [
   { id: 'distributions', label: 'Distributions', icon: TrendingUp },
   { id: 'documents',     label: 'Documents',     icon: FileText },
   { id: 'accreditation', label: 'Accreditation', icon: UserCheck },
-];
-
-const NAV_ADMIN = [
-  { id: 'calls_calendar', label: 'Calls Calendar', icon: CalendarDays },
 ];
 
 const NAV_FOOTER = [
@@ -128,12 +123,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <NavGroup label="Reports">
           {NAV_REPORTS.map((item) => (
-            <NavItem key={item.id} item={item} active={currentView === item.id} onClick={() => setView(item.id)} />
-          ))}
-        </NavGroup>
-
-        <NavGroup label="Admin">
-          {NAV_ADMIN.map((item) => (
             <NavItem key={item.id} item={item} active={currentView === item.id} onClick={() => setView(item.id)} />
           ))}
         </NavGroup>

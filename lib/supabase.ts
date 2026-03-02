@@ -20,6 +20,12 @@ export const signUp = (email: string, password: string, fullName: string) =>
 
 export const signOut = () => supabase.auth.signOut();
 
+export const signInWithGoogle = () =>
+  supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin },
+  });
+
 export const getSession = () => supabase.auth.getSession();
 
 export const onAuthStateChange = (cb: Parameters<typeof supabase.auth.onAuthStateChange>[0]) =>
