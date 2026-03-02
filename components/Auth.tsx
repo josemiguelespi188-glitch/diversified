@@ -114,7 +114,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             </button>
           ))}
 
-          {/* Divider */}
+          {/* Divider — Development */}
           <div className="relative py-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full h-px" style={{ background: T.border }} />
@@ -126,7 +126,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
             </div>
           </div>
 
-          {/* Demo */}
+          {/* Institutional Demo */}
           <button
             onClick={handleDemoAccess}
             disabled={loading}
@@ -147,6 +147,41 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack }) => {
               </div>
             </div>
             <ArrowRight size={15} style={{ color: T.gold }} />
+          </button>
+
+          {/* Divider — Admin Access */}
+          <div className="relative py-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full h-px" style={{ background: T.border }} />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-3 text-[9px] font-black uppercase tracking-[0.3em]" style={{ background: T.bg, color: T.textDim }}>
+                Admin Access
+              </span>
+            </div>
+          </div>
+
+          {/* Admin Portal */}
+          <button
+            onClick={handleDemoAccess}
+            disabled={loading}
+            className="w-full flex items-center justify-between p-5 rounded-sm transition-all duration-200"
+            style={{ background: T.raised, border: `1px solid ${T.border}` }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}40`; e.currentTarget.style.background = `${T.gold}06`; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.raised; }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-9 h-9 rounded-sm flex items-center justify-center" style={{ background: T.raised, border: `1px solid ${T.gold}40` }}>
+                <LayoutDashboard size={17} style={{ color: T.gold }} />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.text }}>
+                  {loading ? 'Loading…' : 'Admin Portal'}
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: T.textDim }}>Full admin access · Dashboard & portfolio</p>
+              </div>
+            </div>
+            <ArrowRight size={15} style={{ color: T.textDim }} />
           </button>
 
           <p className="text-center text-[9px] uppercase tracking-widest pt-4" style={{ color: T.textDim }}>
