@@ -172,3 +172,30 @@ export interface DealSubmission {
   submitted_at: string;
   status: 'new' | 'reviewed' | 'passed' | 'declined';
 }
+
+export interface PublicDealSubmission {
+  id: string;
+  project_name: string;
+  company_name: string;
+  contact_name: string;
+  contact_email: string;
+  industry: string;
+  capital_needed?: string;
+  description: string;
+  status: 'new' | 'reviewed' | 'passed' | 'declined';
+  created_at: string;
+}
+
+export interface Meeting {
+  id: string;
+  type: 'raise_capital' | 'investor';
+  name: string;
+  email: string;
+  deal_submission_id?: string;
+  preferred_datetime?: string;
+  investor_type?: string;
+  investment_range?: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  notes?: string;
+  created_at: string;
+}

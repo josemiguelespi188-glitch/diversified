@@ -2,12 +2,11 @@ import React, { useState, useRef } from 'react';
 import { T, Badge, Button, ProgressBar } from './UIElements';
 import { Navbar } from './Navbar';
 import { MOCK_DEALS } from '../constants';
-import { DealSubmission } from '../types';
 import {
   Shield, BarChart2, Users, Zap, ArrowRight, CheckCircle, MapPin,
-  TrendingUp, DollarSign, Building2, Clock, Lock, X, Send, Phone,
-  ChevronDown, Briefcase, Star, Globe, FileCheck, CalendarDays,
+  Lock, ChevronDown, CalendarDays,
 } from 'lucide-react';
+import { createMeeting, isSupabaseConfigured } from '../lib/supabase';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -195,245 +194,22 @@ const PortfolioCard: React.FC<{ deal: typeof MOCK_DEALS[0]; onCTA: () => void }>
   </div>
 );
 
-// ── Submit Deal Modal ─────────────────────────────────────────────────────────
-const ASSET_CLASSES = ['Multifamily', 'Industrial', 'Office', 'Retail', 'Mixed-Use', 'Private Debt', 'Self-Storage', 'Hospitality', 'Development', 'Other'];
-const STRUCTURES_OPTS = ['Reg D 506(c)', 'Reg D 506(b)', 'Reg A', 'Reg CF', 'Not Sure Yet'];
-const CALL_TIMES = ['Morning (9am–12pm ET)', 'Afternoon (12pm–3pm ET)', 'Late Afternoon (3pm–6pm ET)', 'Flexible — any time'];
-
-const SubmitDealModal: React.FC<{ onClose: () => void; onSubmit: (sub: DealSubmission) => void }> = ({ onClose, onSubmit }) => {
-  const [step, setStep] = useState<1 | 2 | 'done'>(1);
-  const [form, setForm] = useState({
-    sponsor_company: '', contact_name: '', contact_email: '', contact_phone: '',
-    asset_class: ASSET_CLASSES[0], target_raise: '', projected_irr: '',
-    structure: STRUCTURES_OPTS[0], description: '', preferred_call_time: CALL_TIMES[0],
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    const sub: DealSubmission = {
-      id: `sub_${Date.now()}`,
-      ...form,
-      submitted_at: new Date().toISOString(),
-      status: 'new',
-    };
-    onSubmit(sub);
-    setSubmitting(false);
-    setStep('done');
-  };
-
-  const field = (label: string, key: string, props?: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>{label}</label>
-      <input
-        value={(form as Record<string,string>)[key]}
-        onChange={(e) => set(key, e.target.value)}
-        className="w-full px-3 py-2.5 rounded-sm text-sm outline-none"
-        style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}
-        {...props}
-      />
-    </div>
-  );
-
-  const dropdown = (label: string, key: string, opts: string[]) => (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>{label}</label>
-      <div className="relative">
-        <select
-          value={(form as Record<string,string>)[key]}
-          onChange={(e) => set(key, e.target.value)}
-          className="w-full px-3 py-2.5 rounded-sm text-sm outline-none appearance-none"
-          style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}
-        >
-          {opts.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.textDim }} />
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)' }}>
-      <div className="w-full max-w-xl rounded-sm overflow-hidden" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${T.border}` }}>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: T.gold }}>Raise Capital</p>
-            <h2 className="text-sm font-black uppercase tracking-wider" style={{ color: T.text }}>Submit Your Deal</h2>
-          </div>
-          <button onClick={onClose} style={{ color: T.textDim }}><X size={16} /></button>
-        </div>
-
-        {step === 'done' ? (
-          <div className="p-12 text-center space-y-5">
-            <div className="w-16 h-16 rounded-sm flex items-center justify-center mx-auto" style={{ background: T.jadeFaint, border: `1px solid ${T.jade}40` }}>
-              <CheckCircle size={28} style={{ color: T.jade }} />
-            </div>
-            <div>
-              <p className="text-sm font-black uppercase tracking-widest mb-2" style={{ color: T.text }}>Submission Received</p>
-              <p className="text-xs leading-relaxed max-w-xs mx-auto" style={{ color: T.textSub }}>
-                Thank you, {form.contact_name.split(' ')[0]}. Our capital formation team will review your deal and reach out within 2 business days to schedule a call.
-              </p>
-            </div>
-            <div className="px-4 py-3 rounded-sm text-left" style={{ background: T.raised, border: `1px solid ${T.border}` }}>
-              <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: T.textDim }}>What happens next</p>
-              {['Initial screening by our deal team', 'Introductory call to discuss your opportunity', 'Full committee due diligence (if shortlisted)', 'Launch on the Diversify platform'].map((s, i) => (
-                <div key={s} className="flex items-center gap-2 mt-1.5">
-                  <div className="w-4 h-4 rounded-sm flex items-center justify-center shrink-0 text-[9px] font-black" style={{ background: T.goldFaint, color: T.gold }}>{i + 1}</div>
-                  <p className="text-[10px]" style={{ color: T.textSub }}>{s}</p>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 rounded-sm text-xs font-black uppercase tracking-widest"
-              style={{ background: T.gold, color: '#000' }}
-            >
-              Close
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={step === 1 ? (e) => { e.preventDefault(); setStep(2); } : handleSubmit} className="p-6">
-            {/* Step indicator */}
-            <div className="flex items-center gap-2 mb-6">
-              {[1, 2].map((s) => (
-                <React.Fragment key={s}>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-5 h-5 rounded-sm flex items-center justify-center text-[9px] font-black" style={{ background: step === s ? T.gold : T.raised, color: step === s ? '#000' : T.textDim, border: `1px solid ${step === s ? T.gold : T.border}` }}>{s}</div>
-                    <span className="text-[9px] uppercase tracking-widest" style={{ color: step === s ? T.text : T.textDim }}>{s === 1 ? 'Deal Info' : 'Schedule Call'}</span>
-                  </div>
-                  {s < 2 && <div className="flex-1 h-px" style={{ background: T.border }} />}
-                </React.Fragment>
-              ))}
-            </div>
-
-            {step === 1 && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  {field('Sponsor / Company', 'sponsor_company', { required: true, placeholder: 'Acme Capital Partners' })}
-                  {field('Contact Name', 'contact_name', { required: true, placeholder: 'John Smith' })}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {field('Email Address', 'contact_email', { required: true, type: 'email', placeholder: 'john@acme.com' })}
-                  {field('Phone Number', 'contact_phone', { placeholder: '+1 (555) 000-0000' })}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {dropdown('Asset Class', 'asset_class', ASSET_CLASSES)}
-                  {dropdown('Structure', 'structure', STRUCTURES_OPTS)}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {field('Target Raise', 'target_raise', { required: true, placeholder: '$10,000,000' })}
-                  {field('Projected IRR', 'projected_irr', { placeholder: '14%' })}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>Brief Deal Description</label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={form.description}
-                    onChange={(e) => set('description', e.target.value)}
-                    placeholder="Briefly describe the opportunity: asset type, location, strategy, and why it's compelling…"
-                    className="w-full px-3 py-2.5 rounded-sm text-sm outline-none resize-none"
-                    style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full py-3 rounded-sm text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
-                  style={{ background: T.gold, color: '#000' }}
-                >
-                  Continue <ArrowRight size={13} />
-                </button>
-              </div>
-            )}
-
-            {step === 2 && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-sm" style={{ background: T.raised, border: `1px solid ${T.border}` }}>
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: T.gold }}>Deal Summary</p>
-                  <p className="text-xs font-semibold" style={{ color: T.text }}>{form.sponsor_company} — {form.asset_class}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: T.textDim }}>{form.structure} · Target: {form.target_raise} · IRR: {form.projected_irr}</p>
-                </div>
-
-                {dropdown('Preferred Call Time', 'preferred_call_time', CALL_TIMES)}
-
-                <div className="space-y-3 p-4 rounded-sm" style={{ background: `${T.gold}08`, border: `1px solid ${T.gold}25` }}>
-                  <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: T.gold }}>What to Expect on the Call</p>
-                  {[
-                    'A 30-minute introductory call with our capital formation team',
-                    'Discussion of your deal structure, timeline, and investor requirements',
-                    'Overview of our platform terms, fees, and marketing approach',
-                  ].map((s) => (
-                    <div key={s} className="flex items-start gap-2">
-                      <CheckCircle size={11} className="mt-0.5 shrink-0" style={{ color: T.gold }} />
-                      <p className="text-[10px] leading-relaxed" style={{ color: T.textSub }}>{s}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="px-4 py-2.5 rounded-sm text-xs font-bold uppercase tracking-widest"
-                    style={{ background: T.raised, color: T.textDim, border: `1px solid ${T.border}` }}
-                  >
-                    ← Back
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1 py-3 rounded-sm text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity"
-                    style={{ background: T.gold, color: '#000', opacity: submitting ? 0.6 : 1 }}
-                  >
-                    {submitting ? (
-                      <><span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Submitting…</>
-                    ) : (
-                      <><CalendarDays size={13} /> Schedule a Call</>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </form>
-        )}
-      </div>
-    </div>
-  );
-};
-
 // ── Main LandingPage ──────────────────────────────────────────────────────────
 interface LandingPageProps {
   onStart: () => void;
   onAdminAccess: () => void;
-  onSubmitDeal: (sub: DealSubmission) => void;
+  onRaiseCapital: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAdminAccess, onSubmitDeal }) => {
-  const [activeSection, setActiveSection] = useState<'invest' | 'portfolio' | 'raise'>('invest');
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
+export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAdminAccess, onRaiseCapital }) => {
+  const portfolioRef = useRef<HTMLDivElement>(null);
 
-  const portfolioRef  = useRef<HTMLDivElement>(null);
-  const raiseRef      = useRef<HTMLDivElement>(null);
-
-  const scrollTo = (section: 'portfolio' | 'raise') => {
-    setActiveSection(section);
-    const ref = section === 'portfolio' ? portfolioRef : raiseRef;
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const raiseCapitalBenefits = [
-    { icon: Users,     title: 'Aggregated Accredited Capital',   desc: 'Access our network of 2,000+ accredited investors across the U.S. and internationally, all pre-vetted and ready to deploy.' },
-    { icon: BarChart2, title: 'Institutional Marketing',         desc: 'Professional deal page, pitch deck hosting, investor updates, and data room — fully managed by our team at no upfront cost.' },
-    { icon: Shield,    title: 'Regulatory Compliance Built In',  desc: 'Our legal and compliance infrastructure handles Reg D filings, investor accreditation, and subscription agreements end-to-end.' },
-    { icon: DollarSign,title: 'Faster Capital Formation',        desc: 'Sponsors on our platform reach their fundraising targets 40% faster than traditional broker-dealer channels.' },
-    { icon: Globe,     title: 'Broad Investor Reach',            desc: 'Single-family offices, trusts, corporates, and individual accredited investors — diversified LP base reduces concentration risk.' },
-    { icon: FileCheck, title: 'Transparent Performance Reporting',desc: 'Quarterly reports, distribution notices, and K-1 distribution are handled through our investor portal automatically.' },
-  ];
+  // ── Investor Schedule-a-Call state ───────────────────────────────────────
+  const [scheduleForm, setScheduleForm] = useState({ name: '', email: '', investor_type: '', investment_range: '', preferred_datetime: '' });
+  const [scheduleStep, setScheduleStep] = useState<'form' | 'done'>('form');
+  const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
+  const [scheduleError, setScheduleError] = useState('');
+  const setSF = (k: string, v: string) => setScheduleForm((f) => ({ ...f, [k]: v }));
 
   const principles = [
     { icon: Shield,    title: 'Committee-Led',         desc: 'Every deal passes a multi-stage review before reaching the platform. No exceptions.' },
@@ -449,9 +225,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAdminAccess
     'Full document access, zero gatekeeping',
   ];
 
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setScheduleSubmitting(true);
+    setScheduleError('');
+    if (isSupabaseConfigured) {
+      const { error: err } = await createMeeting({
+        type: 'investor',
+        name: scheduleForm.name,
+        email: scheduleForm.email,
+        investor_type: scheduleForm.investor_type || null,
+        investment_range: scheduleForm.investment_range || null,
+        preferred_datetime: scheduleForm.preferred_datetime || null,
+        status: 'pending',
+      });
+      if (err) {
+        setScheduleError('There was an error. Please try again.');
+        setScheduleSubmitting(false);
+        return;
+      }
+    }
+    setScheduleSubmitting(false);
+    setScheduleStep('done');
+  };
+
   return (
     <div className="min-h-screen relative overflow-x-hidden" style={{ background: T.bg, color: T.text }}>
-      <Navbar onAccess={onStart} onPortfolio={() => scrollTo('portfolio')} onRaise={() => scrollTo('raise')} />
+      <Navbar onAccess={onStart} onPortfolio={() => { portfolioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} onRaise={onRaiseCapital} />
 
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-16">
@@ -500,7 +300,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAdminAccess
               </h2>
             </div>
             <button
-              onClick={() => scrollTo('portfolio')}
+              onClick={() => portfolioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               className="flex items-center gap-1.5 px-4 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all"
               style={{ background: T.goldFaint, color: T.gold, border: `1px solid ${T.gold}40` }}
               onMouseEnter={(e) => { e.currentTarget.style.background = T.gold; e.currentTarget.style.color = '#000'; }}
@@ -547,90 +347,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAdminAccess
             <Button onClick={onStart} size="lg" className="mx-auto">
               Access Platform &amp; Invest <ArrowRight size={14} />
             </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Raise Capital With Us ─────────────────────────────────────── */}
-      <section ref={raiseRef} className="py-28 px-6 relative">
-        <GlowOrb style={{ top: -100, right: -300, opacity: 0.5 }} />
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-            {/* Left: copy */}
-            <div>
-              <SectionLabel text="For Sponsors" />
-              <h2 className="text-4xl font-black uppercase mb-6" style={{ color: T.text }}>
-                Raise Capital<br />
-                <span style={{ color: T.gold }}>With Us</span>
-              </h2>
-              <p className="text-sm leading-relaxed mb-8" style={{ color: T.textSub }}>
-                Diversify partners with experienced real estate sponsors to bring institutional-quality private placements to our network of 2,000+ accredited investors. We manage the full capital-raise workflow — so you can focus on executing the deal.
-              </p>
-
-              <div className="space-y-2 mb-10">
-                {[
-                  'No upfront placement fees',
-                  'Full compliance and Reg D filing support',
-                  'Investor CRM and reporting portal included',
-                  'Average raise of $8.2M per deal on the platform',
-                  'Co-investment from Diversify capital on select deals',
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-2.5">
-                    <CheckCircle size={14} style={{ color: T.jade, flexShrink: 0 }} />
-                    <span className="text-sm" style={{ color: T.textSub }}>{item}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => setShowSubmitModal(true)}
-                className="flex items-center gap-2.5 px-8 py-4 rounded-sm text-sm font-black uppercase tracking-widest transition-all group"
-                style={{ background: T.gold, color: '#000' }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-              >
-                <Briefcase size={16} />
-                Submit Your Deal
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-              <p className="text-[10px] mt-3" style={{ color: T.textDim }}>
-                Our team reviews all submissions within 2 business days.
-              </p>
-            </div>
-
-            {/* Right: benefits grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {raiseCapitalBenefits.map((b) => (
-                <div
-                  key={b.title}
-                  className="p-5 rounded-sm space-y-3 transition-all"
-                  style={{ background: T.surface, border: `1px solid ${T.border}` }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${T.gold}40`; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; }}
-                >
-                  <div className="w-8 h-8 rounded-sm flex items-center justify-center" style={{ background: T.goldFaint, border: `1px solid ${T.gold}30` }}>
-                    <b.icon size={15} style={{ color: T.gold }} />
-                  </div>
-                  <h4 className="text-[11px] font-black uppercase tracking-wider" style={{ color: T.text }}>{b.title}</h4>
-                  <p className="text-[10px] leading-relaxed" style={{ color: T.textSub }}>{b.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Social proof strip */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { value: '42', label: 'Deals Launched' },
-              { value: '$2.1B+', label: 'Capital Raised' },
-              { value: '2,000+', label: 'Investor Network' },
-              { value: '40%', label: 'Faster Fundraising' },
-            ].map((s) => (
-              <div key={s.label} className="p-5 rounded-sm text-center" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-                <p className="text-2xl font-black" style={{ color: T.gold }}>{s.value}</p>
-                <p className="text-[9px] font-bold uppercase tracking-widest mt-1" style={{ color: T.textDim }}>{s.label}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -690,6 +406,102 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAdminAccess
         </div>
       </section>
 
+      {/* ── Schedule a Call (Investor) ────────────────────────────────── */}
+      <section className="py-28 px-6 relative">
+        <GlowOrb style={{ bottom: -100, left: -200, opacity: 0.5 }} />
+        <div className="max-w-2xl mx-auto relative z-10">
+          <div className="text-center mb-12">
+            <SectionLabel text="Talk to Our Team" />
+            <h2 className="text-4xl font-black uppercase" style={{ color: T.text }}>
+              Schedule a <span style={{ color: T.gold }}>Call</span>
+            </h2>
+            <p className="text-sm mt-3 max-w-md mx-auto" style={{ color: T.textSub }}>
+              Ready to learn more? Book a quick intro call with our investment team — no commitments, just clarity.
+            </p>
+          </div>
+
+          {scheduleStep === 'form' ? (
+            <div className="p-8 rounded-sm" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+              <form onSubmit={handleScheduleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>Full Name <span style={{ color: T.gold }}>*</span></label>
+                    <input required type="text" value={scheduleForm.name} onChange={(e) => setSF('name', e.target.value)} placeholder="Jane Doe" className="w-full px-3 py-2.5 rounded-sm text-sm outline-none" style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>Email Address <span style={{ color: T.gold }}>*</span></label>
+                    <input required type="email" value={scheduleForm.email} onChange={(e) => setSF('email', e.target.value)} placeholder="jane@example.com" className="w-full px-3 py-2.5 rounded-sm text-sm outline-none" style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>Investor Type (optional)</label>
+                    <div className="relative">
+                      <select value={scheduleForm.investor_type} onChange={(e) => setSF('investor_type', e.target.value)} className="w-full px-3 py-2.5 rounded-sm text-sm outline-none appearance-none" style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}>
+                        <option value="">Select…</option>
+                        {['Individual Accredited', 'Family Office', 'Trust', 'Corporation / LLC', 'IRA / Self-Directed', 'Fund of Funds', 'Other'].map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.textDim }} />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>Investment Range (optional)</label>
+                    <div className="relative">
+                      <select value={scheduleForm.investment_range} onChange={(e) => setSF('investment_range', e.target.value)} className="w-full px-3 py-2.5 rounded-sm text-sm outline-none appearance-none" style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}>
+                        <option value="">Select…</option>
+                        {['$25K – $100K', '$100K – $250K', '$250K – $500K', '$500K – $1M', '$1M+'].map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.textDim }} />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textDim }}>Preferred Date &amp; Time (optional)</label>
+                  <div className="relative">
+                    <select value={scheduleForm.preferred_datetime} onChange={(e) => setSF('preferred_datetime', e.target.value)} className="w-full px-3 py-2.5 rounded-sm text-sm outline-none appearance-none" style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}>
+                      <option value="">Flexible — any time</option>
+                      {['Morning (9am–12pm ET)', 'Afternoon (12pm–3pm ET)', 'Late Afternoon (3pm–6pm ET)'].map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.textDim }} />
+                  </div>
+                </div>
+
+                {scheduleError && (
+                  <div className="px-4 py-3 rounded-sm text-xs" style={{ background: '#ff808015', border: '1px solid #ff808040', color: '#ff8080' }}>
+                    {scheduleError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={scheduleSubmitting}
+                  className="w-full py-4 rounded-sm text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity"
+                  style={{ background: T.gold, color: '#000', opacity: scheduleSubmitting ? 0.6 : 1 }}
+                >
+                  {scheduleSubmitting ? (
+                    <><span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Submitting…</>
+                  ) : (
+                    <><CalendarDays size={14} /> Request a Call</>
+                  )}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="p-12 rounded-sm text-center space-y-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+              <div className="w-16 h-16 rounded-sm flex items-center justify-center mx-auto" style={{ background: T.jadeFaint, border: `1px solid ${T.jade}40` }}>
+                <CheckCircle size={28} style={{ color: T.jade }} />
+              </div>
+              <div>
+                <p className="text-sm font-black uppercase tracking-widest mb-2" style={{ color: T.text }}>Request Received</p>
+                <p className="text-xs leading-relaxed max-w-xs mx-auto" style={{ color: T.textSub }}>
+                  Thank you, {scheduleForm.name.split(' ')[0]}. Our team will reach out within 1 business day to confirm your call.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* ── Footer ────────────────────────────────────────────────────── */}
       <footer className="py-16 px-6" style={{ borderTop: `1px solid ${T.border}` }}>
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start justify-between gap-10">
@@ -720,7 +532,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAdminAccess
                       href="#"
                       className="block text-xs transition-colors hover:text-amber-400"
                       style={{ color: T.textSub }}
-                      onClick={link === 'Submit a Deal' ? (e) => { e.preventDefault(); setShowSubmitModal(true); } : undefined}
+                      onClick={link === 'Submit a Deal' ? (e) => { e.preventDefault(); onRaiseCapital(); } : undefined}
                     >
                       {link}
                     </a>
@@ -744,13 +556,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onAdminAccess
         </div>
       </footer>
 
-      {/* Submit Deal Modal */}
-      {showSubmitModal && (
-        <SubmitDealModal
-          onClose={() => setShowSubmitModal(false)}
-          onSubmit={(sub) => { onSubmitDeal(sub); }}
-        />
-      )}
     </div>
   );
 };

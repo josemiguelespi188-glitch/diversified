@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Briefcase, MessageSquare, FileText, Settings, LogOut,
   Search, ChevronRight, X, Plus, Edit2, Check, AlertCircle, Bell, TrendingUp,
   DollarSign, UserCheck, Activity, BarChart2, Shield, Send, Inbox, Phone, Mail,
-  CalendarDays, CheckCircle,
+  CalendarDays, CheckCircle, Clock, RefreshCw,
 } from 'lucide-react';
 import { T } from './UIElements';
 import { adminLogout, AdminSession } from '../lib/adminAuth';
@@ -17,7 +17,8 @@ import {
   generateGrowthData, DEFAULT_SETTINGS,
   AdminUser, AdminDeal, AdminMessage, AdminDocument, AdminSettings,
 } from '../lib/adminMockData';
-import { InvestmentAccountType, DealSubmission } from '../types';
+import { InvestmentAccountType, DealSubmission, Meeting } from '../types';
+import { getMeetings } from '../lib/supabase';
 
 // ── Pre-generate mock data once ────────────────────────────────────────────
 const ALL_USERS   = generateAdminUsers();
@@ -1155,15 +1156,167 @@ const AdminSubmissionsSection: React.FC<{ submissions: DealSubmission[] }> = ({ 
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ── CALENDAR SECTION ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+const MEETING_STATUS_COLORS: Record<string, string> = {
+  pending:   T.gold,
+  confirmed: '#60a5fa',
+  completed: T.jade,
+  cancelled: '#ff8080',
+};
+
+const AdminCalendarSection: React.FC = () => {
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
+  const [filter, setFilter]     = useState<'all' | 'raise_capital' | 'investor'>('all');
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    const { data, error: err } = await getMeetings();
+    if (err) {
+      setError('Could not load meetings. Make sure the Supabase meetings table exists.');
+    } else {
+      setMeetings((data as Meeting[]) ?? []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const displayed = meetings.filter((m) => filter === 'all' || m.type === filter);
+
+  const fmtDt = (s: string) =>
+    new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        title="Calendar"
+        sub="All scheduled calls from public pages"
+        action={
+          <button
+            onClick={load}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all"
+            style={{ background: T.raised, color: T.textDim, border: `1px solid ${T.border}` }}
+          >
+            <RefreshCw size={11} /> Refresh
+          </button>
+        }
+      />
+
+      {/* Filter tabs */}
+      <div className="flex gap-2">
+        {(['all', 'investor', 'raise_capital'] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className="px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all"
+            style={{
+              background: filter === f ? T.goldFaint : T.raised,
+              color: filter === f ? T.gold : T.textDim,
+              border: `1px solid ${filter === f ? T.gold + '40' : T.border}`,
+            }}
+          >
+            {f === 'all' ? 'All' : f === 'investor' ? 'Investor' : 'Raise Capital'}
+          </button>
+        ))}
+        <span className="ml-auto flex items-center text-[10px]" style={{ color: T.textDim }}>
+          {displayed.length} meeting{displayed.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard icon={CalendarDays} label="Total Meetings"    value={meetings.length.toString()} />
+        <KpiCard icon={Clock}        label="Pending"           value={meetings.filter((m) => m.status === 'pending').length.toString()} color={T.gold} />
+        <KpiCard icon={Users}        label="Investor Calls"    value={meetings.filter((m) => m.type === 'investor').length.toString()} color="#60a5fa" />
+        <KpiCard icon={Briefcase}    label="Raise Capital"     value={meetings.filter((m) => m.type === 'raise_capital').length.toString()} color="#a78bfa" />
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: `${T.gold}30`, borderTopColor: T.gold }} />
+        </div>
+      ) : error ? (
+        <div className="p-6 rounded-sm text-center" style={{ background: T.surface, border: `1px solid #ff808040` }}>
+          <AlertCircle size={24} className="mx-auto mb-3" style={{ color: '#ff8080' }} />
+          <p className="text-sm font-bold mb-1" style={{ color: '#ff8080' }}>Could not load meetings</p>
+          <p className="text-xs" style={{ color: T.textDim }}>{error}</p>
+          <p className="text-[10px] mt-3" style={{ color: T.textDim }}>
+            Run the SQL schema in Supabase to create the <code className="px-1 rounded" style={{ background: T.raised }}>meetings</code> table.
+          </p>
+        </div>
+      ) : displayed.length === 0 ? (
+        <div className="p-12 rounded-sm text-center" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+          <CalendarDays size={28} className="mx-auto mb-4" style={{ color: T.textDim }} />
+          <p className="text-sm font-black uppercase tracking-widest mb-2" style={{ color: T.text }}>No Meetings Yet</p>
+          <p className="text-xs" style={{ color: T.textDim }}>
+            Meetings will appear here once investors or sponsors schedule a call from the public pages.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-sm overflow-hidden" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+          {/* Table header */}
+          <div className="grid grid-cols-12 gap-3 px-4 py-2.5" style={{ borderBottom: `1px solid ${T.border}`, background: T.raised }}>
+            {['Date / Time', 'Name', 'Email', 'Type', 'Preferred Slot', 'Status'].map((h) => (
+              <span key={h} className="text-[9px] font-black uppercase tracking-widest col-span-2" style={{ color: T.textDim }}>{h}</span>
+            ))}
+          </div>
+
+          {/* Rows */}
+          {displayed.map((m) => (
+            <div
+              key={m.id}
+              className="grid grid-cols-12 gap-3 px-4 py-3.5 transition-colors"
+              style={{ borderBottom: `1px solid ${T.border}` }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = T.raised; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div className="col-span-2">
+                <p className="text-[10px] font-semibold" style={{ color: T.text }}>{fmtDt(m.created_at)}</p>
+                <p className="text-[9px] mt-0.5" style={{ color: T.textDim }}>Submitted</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] font-semibold truncate" style={{ color: T.text }}>{m.name}</p>
+                {m.investor_type && <p className="text-[9px] mt-0.5 truncate" style={{ color: T.textDim }}>{m.investor_type}</p>}
+                {m.investment_range && <p className="text-[9px] truncate" style={{ color: T.textDim }}>{m.investment_range}</p>}
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] truncate" style={{ color: T.textSub }}>{m.email}</p>
+              </div>
+              <div className="col-span-2">
+                <Pill
+                  label={m.type === 'investor' ? 'Investor' : 'Raise Capital'}
+                  color={m.type === 'investor' ? '#60a5fa' : '#a78bfa'}
+                />
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px]" style={{ color: T.textSub }}>{m.preferred_datetime || '—'}</p>
+              </div>
+              <div className="col-span-2">
+                <Pill label={m.status} color={MEETING_STATUS_COLORS[m.status] ?? T.textDim} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ── ADMIN PORTAL SHELL ────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
-type AdminView = 'dashboard' | 'users' | 'deals' | 'messages' | 'documents' | 'settings' | 'submissions';
+type AdminView = 'dashboard' | 'users' | 'deals' | 'messages' | 'documents' | 'settings' | 'submissions' | 'calendar';
 
 const NAV_ITEMS: Array<{ key: AdminView; label: string; icon: React.ElementType }> = [
   { key: 'dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
   { key: 'users',       label: 'Users',       icon: Users },
   { key: 'deals',       label: 'Deals',       icon: Briefcase },
   { key: 'submissions', label: 'Submissions', icon: Inbox },
+  { key: 'calendar',    label: 'Calendar',    icon: CalendarDays },
   { key: 'messages',    label: 'Messages',    icon: MessageSquare },
   { key: 'documents',   label: 'Documents',   icon: FileText },
   { key: 'settings',    label: 'Settings',    icon: Settings },
@@ -1172,13 +1325,11 @@ const NAV_ITEMS: Array<{ key: AdminView; label: string; icon: React.ElementType 
 interface Props {
   session: AdminSession;
   onLogout: () => void;
-  submissions?: DealSubmission[];
 }
 
-export const AdminPortal: React.FC<Props> = ({ session, onLogout, submissions = [] }) => {
+export const AdminPortal: React.FC<Props> = ({ session, onLogout }) => {
   const [view, setView] = useState<AdminView>('dashboard');
   const newMsgCount = ALL_MESSAGES.filter((m) => m.status === 'new').length;
-  const newSubCount = submissions.filter((s) => s.status === 'new').length;
 
   const handleLogout = () => {
     adminLogout();
@@ -1219,9 +1370,6 @@ export const AdminPortal: React.FC<Props> = ({ session, onLogout, submissions = 
               {key === 'messages' && newMsgCount > 0 && (
                 <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: T.gold, color: '#000' }}>{newMsgCount}</span>
               )}
-              {key === 'submissions' && newSubCount > 0 && (
-                <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: T.gold, color: '#000' }}>{newSubCount}</span>
-              )}
             </button>
           ))}
         </nav>
@@ -1240,7 +1388,8 @@ export const AdminPortal: React.FC<Props> = ({ session, onLogout, submissions = 
         {view === 'dashboard'   && <AdminDashboardSection />}
         {view === 'users'       && <AdminUsersSection />}
         {view === 'deals'       && <AdminDealsSection />}
-        {view === 'submissions' && <AdminSubmissionsSection submissions={submissions} />}
+        {view === 'submissions' && <AdminSubmissionsSection submissions={[]} />}
+        {view === 'calendar'    && <AdminCalendarSection />}
         {view === 'messages'    && <AdminMessagesSection />}
         {view === 'documents'   && <AdminDocumentsSection />}
         {view === 'settings'    && <AdminSettingsSection />}

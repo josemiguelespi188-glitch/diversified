@@ -88,6 +88,19 @@ export const getDocuments = (userId: string) =>
     .eq('user_id', userId)
     .order('date', { ascending: false });
 
+// ─── Public Deal Submissions (Raise Capital page) ─────────────────────────────
+
+export const createDealSubmission = (data: Record<string, unknown>) =>
+  supabase.from('deal_submissions').insert(data).select().single();
+
+// ─── Meetings / Calendar (public write, admin read) ───────────────────────────
+
+export const createMeeting = (data: Record<string, unknown>) =>
+  supabase.from('meetings').insert(data).select().single();
+
+export const getMeetings = () =>
+  supabase.from('meetings').select('*').order('created_at', { ascending: false });
+
 // ─── Supabase SQL Schema (run in Supabase SQL Editor) ────────────────────────
 /*
 -- Enable UUID extension
@@ -189,6 +202,43 @@ create table public.documents (
   size_kb integer,
   created_at timestamptz default now()
 );
+
+-- Deal Submissions (public intake from Raise Capital page)
+create table public.deal_submissions (
+  id uuid primary key default gen_random_uuid(),
+  project_name text not null,
+  company_name text not null,
+  contact_name text not null,
+  contact_email text not null,
+  industry text,
+  capital_needed text,
+  description text not null,
+  status text default 'new',
+  created_at timestamptz default now()
+);
+
+-- Meetings / Calendar (schedule-a-call from public pages)
+create table public.meetings (
+  id uuid primary key default gen_random_uuid(),
+  type text not null,
+  name text not null,
+  email text not null,
+  deal_submission_id uuid references public.deal_submissions(id),
+  preferred_datetime text,
+  investor_type text,
+  investment_range text,
+  status text default 'pending',
+  notes text,
+  created_at timestamptz default now()
+);
+
+-- Row Level Security
+alter table public.deal_submissions enable row level security;
+alter table public.meetings enable row level security;
+create policy "Anyone can insert deal_submissions" on public.deal_submissions for insert with check (true);
+create policy "Anyone can read deal_submissions"   on public.deal_submissions for select using (true);
+create policy "Anyone can insert meetings"          on public.meetings for insert with check (true);
+create policy "Anyone can read meetings"            on public.meetings for select using (true);
 
 -- Row Level Security
 alter table public.profiles enable row level security;

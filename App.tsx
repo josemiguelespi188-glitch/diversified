@@ -15,15 +15,16 @@ import { Button, T } from './components/UIElements';
 import { AdminLogin } from './components/AdminLogin';
 import { AdminPortal } from './components/AdminPortal';
 import { LandingPage } from './components/LandingPage';
+import { RaiseCapital } from './components/RaiseCapital';
 import { getAdminSession, AdminSession } from './lib/adminAuth';
 import {
   supabase, isSupabaseConfigured, getProfile, upsertProfile,
   signOut as supabaseSignOut,
 } from './lib/supabase';
-import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType, DealSubmission } from './types';
+import { Deal, User, InvestmentRequest, InvestmentAccount, InvestmentAccountType } from './types';
 import { MOCK_ACCOUNTS } from './constants';
 
-type AppState = 'LANDING' | 'AUTH' | 'ONBOARDING' | 'PORTAL' | 'ADMIN_LOGIN' | 'ADMIN_PORTAL' | 'LOADING';
+type AppState = 'LANDING' | 'AUTH' | 'ONBOARDING' | 'PORTAL' | 'ADMIN_LOGIN' | 'ADMIN_PORTAL' | 'RAISE_CAPITAL' | 'LOADING';
 
 // ─── Portal Shell ─────────────────────────────────────────────────────────────
 
@@ -137,7 +138,6 @@ const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('LOADING');
   const [user, setUser] = useState<User | null>(null);
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
-  const [dealSubmissions, setDealSubmissions] = useState<DealSubmission[]>([]);
 
   useEffect(() => {
     if (appState !== 'LOADING') window.scrollTo({ top: 0 });
@@ -230,12 +230,13 @@ const App: React.FC = () => {
   };
 
   if (appState === 'LOADING') return <LoadingScreen />;
-  if (appState === 'LANDING')    return <LandingPage onStart={() => setAppState('AUTH')} onAdminAccess={() => setAppState('ADMIN_LOGIN')} onSubmitDeal={(sub) => setDealSubmissions((prev) => [sub, ...prev])} />;
-  if (appState === 'AUTH')       return <Auth onSuccess={handleLoginSuccess} onBack={() => setAppState('LANDING')} onAdminAccess={() => setAppState('ADMIN_LOGIN')} />;
+  if (appState === 'LANDING')        return <LandingPage onStart={() => setAppState('AUTH')} onAdminAccess={() => setAppState('ADMIN_LOGIN')} onRaiseCapital={() => setAppState('RAISE_CAPITAL')} />;
+  if (appState === 'RAISE_CAPITAL')  return <RaiseCapital onBack={() => setAppState('LANDING')} />;
+  if (appState === 'AUTH')           return <Auth onSuccess={handleLoginSuccess} onBack={() => setAppState('LANDING')} onAdminAccess={() => setAppState('ADMIN_LOGIN')} />;
   if (appState === 'ONBOARDING' && user) return <Onboarding user={user} onComplete={handleOnboardingComplete} />;
   if (appState === 'PORTAL' && user)     return <Portal user={user} onLogout={handleLogout} onUpdateUser={(d) => setUser({ ...user!, ...d })} />;
-  if (appState === 'ADMIN_LOGIN') return <AdminLogin onSuccess={handleAdminLoginSuccess} onBack={() => setAppState('LANDING')} />;
-  if (appState === 'ADMIN_PORTAL' && adminSession) return <AdminPortal session={adminSession} onLogout={() => { setAdminSession(null); setAppState('LANDING'); }} submissions={dealSubmissions} />;
+  if (appState === 'ADMIN_LOGIN')    return <AdminLogin onSuccess={handleAdminLoginSuccess} onBack={() => setAppState('LANDING')} />;
+  if (appState === 'ADMIN_PORTAL' && adminSession) return <AdminPortal session={adminSession} onLogout={() => { setAdminSession(null); setAppState('LANDING'); }} />;
   return null;
 };
 
