@@ -1,12 +1,12 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import {
   LayoutDashboard, Users, Briefcase, MessageSquare, FileText, Settings, LogOut,
   Search, ChevronRight, X, Plus, Edit2, Check, AlertCircle, Bell, TrendingUp,
-  DollarSign, UserCheck, Activity, BarChart2, Shield,
+  DollarSign, UserCheck, Activity, BarChart2, Shield, Send,
 } from 'lucide-react';
 import { T } from './UIElements';
 import { adminLogout, AdminSession } from '../lib/adminAuth';
@@ -530,17 +530,45 @@ const AdminDealsSection: React.FC = () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // ── MESSAGES SECTION ──────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
+
+interface AdminChatReply {
+  id: string;
+  text: string;
+  timestamp: string;
+}
+
 const AdminMessagesSection: React.FC = () => {
-  const [messages, setMessages]     = useState<AdminMessage[]>(ALL_MESSAGES);
-  const [selected, setSelected]     = useState<AdminMessage | null>(null);
-  const [noteText, setNoteText]     = useState('');
-  const [filterStatus, setStatus]   = useState<'all' | 'new' | 'in_progress' | 'resolved'>('all');
+  const [messages, setMessages]   = useState<AdminMessage[]>(ALL_MESSAGES);
+  const [selected, setSelected]   = useState<AdminMessage | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [noteText, setNoteText]   = useState('');
+  const [showNotes, setShowNotes] = useState(false);
+  const [filterStatus, setStatus] = useState<'all' | 'new' | 'in_progress' | 'resolved'>('all');
+  const [replies, setReplies]     = useState<Record<string, AdminChatReply[]>>({});
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const filtered = messages.filter((m) => filterStatus === 'all' || m.status === filterStatus);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [selected?.id, replies]);
 
   const updateStatus = (id: string, status: AdminMessage['status']) => {
     setMessages((p) => p.map((m) => m.id === id ? { ...m, status } : m));
     setSelected((s) => s ? { ...s, status } : null);
+  };
+
+  const sendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selected || !replyText.trim()) return;
+    const reply: AdminChatReply = {
+      id: `rep_${Date.now()}`,
+      text: replyText.trim(),
+      timestamp: new Date().toISOString(),
+    };
+    setReplies((p) => ({ ...p, [selected.id]: [...(p[selected.id] ?? []), reply] }));
+    setReplyText('');
+    if (selected.status === 'new') updateStatus(selected.id, 'in_progress');
   };
 
   const saveNote = () => {
@@ -551,70 +579,227 @@ const AdminMessagesSection: React.FC = () => {
     setNoteText('');
   };
 
+  const MSG_STATUS_CFG = {
+    new:         { label: 'New',         color: T.gold },
+    in_progress: { label: 'In Progress', color: '#60a5fa' },
+    resolved:    { label: 'Resolved',    color: T.jade },
+  };
+
   const STATUS_FILTERS: Array<{ key: typeof filterStatus; label: string; color: string }> = [
-    { key: 'all', label: 'All', color: T.textDim },
-    { key: 'new', label: 'New', color: T.gold },
+    { key: 'all',         label: 'All',         color: T.textDim },
+    { key: 'new',         label: 'New',         color: T.gold },
     { key: 'in_progress', label: 'In Progress', color: '#60a5fa' },
-    { key: 'resolved', label: 'Resolved', color: T.jade },
+    { key: 'resolved',    label: 'Resolved',    color: T.jade },
   ];
 
+  const fmtTime = (iso: string) => {
+    const d = new Date(iso);
+    const now = new Date();
+    if (now.getTime() - d.getTime() < 86400000) return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   return (
-    <div className="flex gap-6 h-[calc(100vh-7rem)]">
-      <div className="flex-1 flex flex-col min-w-0">
-        <SectionHeader title="Messages" sub={`${filtered.length} inquiries`} />
-
-        <div className="flex gap-2 mb-4">
-          {STATUS_FILTERS.map((f) => (
-            <button key={f.key} onClick={() => setStatus(f.key)} className="px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider" style={{ background: filterStatus === f.key ? f.color : T.surface, color: filterStatus === f.key ? '#000' : T.textDim, border: `1px solid ${filterStatus === f.key ? f.color : T.border}` }}>
-              {f.label} ({f.key === 'all' ? messages.length : messages.filter((m) => m.status === f.key).length})
-            </button>
-          ))}
-        </div>
-
-        <div className="overflow-y-auto flex-1 space-y-1.5">
-          {filtered.map((m) => (
-            <button key={m.id} onClick={() => setSelected(m)} className="w-full text-left p-3 rounded-sm transition-all" style={{ background: selected?.id === m.id ? T.raised : T.surface, border: `1px solid ${selected?.id === m.id ? T.gold + '50' : T.border}` }}>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: statusColor(m.status) }} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate" style={{ color: T.text }}>{m.subject}</p>
-                  <p className="text-[10px] truncate" style={{ color: T.textDim }}>{m.user_name} · {fmtDate(m.created_at)}</p>
-                </div>
-                <Pill label={m.status.replace('_', ' ')} color={statusColor(m.status)} />
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {selected && (
-        <div className="w-96 shrink-0 overflow-y-auto rounded-sm p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: T.text }}>Inquiry</h3>
-            <button onClick={() => setSelected(null)} style={{ color: T.textDim }}><X size={14} /></button>
-          </div>
-          <p className="text-sm font-bold mb-1" style={{ color: T.text }}>{selected.subject}</p>
-          <p className="text-[10px] mb-1" style={{ color: T.textDim }}>{selected.user_name} · {selected.user_email}</p>
-          <p className="text-[10px] mb-4" style={{ color: T.textDim }}>{fmtDate(selected.created_at)}</p>
-          <p className="text-xs leading-relaxed mb-5 p-3 rounded-sm" style={{ background: T.raised, color: T.text }}>{selected.body}</p>
-
-          {/* Status actions */}
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: T.textDim }}>Update Status</p>
-          <div className="flex gap-2 mb-5">
-            {(['new','in_progress','resolved'] as const).map((s) => (
-              <button key={s} onClick={() => updateStatus(selected.id, s)} className="flex-1 py-1.5 rounded-sm text-[10px] font-bold transition-all" style={{ background: selected.status === s ? statusColor(s) : T.raised, color: selected.status === s ? '#000' : T.textDim, border: `1px solid ${selected.status === s ? statusColor(s) : T.border}` }}>
-                {s.replace('_', ' ')}
+    <div className="flex gap-0 rounded-sm overflow-hidden" style={{ height: 'calc(100vh - 7rem)', border: `1px solid ${T.border}` }}>
+      {/* ── Left: conversation list ── */}
+      <div className="w-72 shrink-0 flex flex-col" style={{ background: T.surface, borderRight: `1px solid ${T.border}` }}>
+        <div className="px-4 py-3 shrink-0" style={{ borderBottom: `1px solid ${T.border}` }}>
+          <SectionHeader title="Messages" sub={`${filtered.length} conversations`} />
+          <div className="flex flex-wrap gap-1.5 -mt-3">
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setStatus(f.key)}
+                className="px-2.5 py-1 rounded-sm text-[9px] font-bold uppercase tracking-wider"
+                style={{
+                  background: filterStatus === f.key ? f.color : T.raised,
+                  color: filterStatus === f.key ? '#000' : T.textDim,
+                  border: `1px solid ${filterStatus === f.key ? f.color : T.border}`,
+                }}
+              >
+                {f.label} ({f.key === 'all' ? messages.length : messages.filter((m) => m.status === f.key).length})
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Internal notes */}
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: T.textDim }}>Internal Notes</p>
-          {selected.internal_notes && (
-            <div className="mb-3 p-3 rounded-sm text-xs whitespace-pre-line" style={{ background: T.raised, color: T.text }}>{selected.internal_notes}</div>
-          )}
-          <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={3} placeholder="Add note…" className="w-full px-3 py-2 rounded-sm text-xs outline-none resize-none mb-2" style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }} />
-          <button onClick={saveNote} className="w-full py-2 rounded-sm text-xs font-bold uppercase tracking-wider" style={{ background: T.gold, color: '#000' }}>Add Note</button>
+        <div className="flex-1 overflow-y-auto">
+          {filtered.map((m) => {
+            const sc = MSG_STATUS_CFG[m.status];
+            const isActive = selected?.id === m.id;
+            const msgReplies = replies[m.id] ?? [];
+            const lastText = msgReplies.length > 0 ? msgReplies[msgReplies.length - 1].text : m.body;
+            return (
+              <button
+                key={m.id}
+                onClick={() => { setSelected(m); setShowNotes(false); }}
+                className="w-full text-left p-3.5 transition-all"
+                style={{
+                  background: isActive ? T.raised : 'transparent',
+                  borderBottom: `1px solid ${T.border}`,
+                  borderLeft: `3px solid ${isActive ? sc.color : 'transparent'}`,
+                }}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="text-xs font-semibold truncate flex-1 leading-tight" style={{ color: T.text }}>{m.subject}</p>
+                  <span className="text-[9px] shrink-0" style={{ color: T.textDim }}>{fmtTime(m.created_at)}</span>
+                </div>
+                <p className="text-[10px] truncate mb-1.5" style={{ color: T.textDim }}>{m.user_name} · {lastText}</p>
+                <Pill label={sc.label} color={sc.color} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Right: chat view ── */}
+      {selected ? (
+        <div className="flex-1 flex flex-col min-w-0" style={{ background: T.bg }}>
+          {/* Header */}
+          <div className="px-5 py-3 flex items-center justify-between shrink-0" style={{ background: T.surface, borderBottom: `1px solid ${T.border}` }}>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.text }}>{selected.subject}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: T.textDim }}>{selected.user_name} · {selected.user_email}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Status buttons */}
+              <div className="flex gap-1">
+                {(['new', 'in_progress', 'resolved'] as const).map((s) => {
+                  const sc = MSG_STATUS_CFG[s];
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => updateStatus(selected.id, s)}
+                      className="px-2.5 py-1 rounded-sm text-[9px] font-bold uppercase tracking-wider transition-all"
+                      style={{
+                        background: selected.status === s ? sc.color : T.raised,
+                        color: selected.status === s ? '#000' : T.textDim,
+                        border: `1px solid ${selected.status === s ? sc.color : T.border}`,
+                      }}
+                    >
+                      {sc.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setShowNotes((v) => !v)}
+                className="px-2.5 py-1 rounded-sm text-[9px] font-bold uppercase tracking-wider"
+                style={{ background: showNotes ? '#a78bfa' : T.raised, color: showNotes ? '#000' : T.textDim, border: `1px solid ${showNotes ? '#a78bfa' : T.border}` }}
+              >
+                Notes
+              </button>
+              <button onClick={() => setSelected(null)} style={{ color: T.textDim }}><X size={14} /></button>
+            </div>
+          </div>
+
+          <div className="flex flex-1 min-h-0">
+            {/* Chat area */}
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                {/* Investor original message (left) */}
+                <div className="flex items-start gap-2.5">
+                  <div
+                    className="w-7 h-7 rounded-sm shrink-0 flex items-center justify-center text-[10px] font-black"
+                    style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}
+                  >
+                    {selected.user_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider mb-1" style={{ color: T.textDim }}>{selected.user_name} · {fmtDate(selected.created_at)}</p>
+                    <div
+                      className="px-3.5 py-2.5 rounded-sm"
+                      style={{ background: T.surface, border: `1px solid ${T.border}`, maxWidth: 420 }}
+                    >
+                      <p className="text-xs leading-relaxed" style={{ color: T.text }}>{selected.body}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Admin replies */}
+                {(replies[selected.id] ?? []).map((r) => (
+                  <div key={r.id} className="flex justify-end">
+                    <div style={{ maxWidth: 420 }}>
+                      <p className="text-[9px] font-bold uppercase tracking-wider mb-1 text-right" style={{ color: T.gold }}>You · {fmtTime(r.timestamp)}</p>
+                      <div className="px-3.5 py-2.5 rounded-sm" style={{ background: T.goldFaint, border: `1px solid ${T.gold}30` }}>
+                        <p className="text-xs leading-relaxed" style={{ color: T.text }}>{r.text}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div ref={chatBottomRef} />
+              </div>
+
+              {/* Reply input */}
+              {selected.status !== 'resolved' ? (
+                <form
+                  onSubmit={sendReply}
+                  className="shrink-0 p-4 flex gap-2"
+                  style={{ background: T.surface, borderTop: `1px solid ${T.border}` }}
+                >
+                  <input
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Reply to investor…"
+                    className="flex-1 px-3 py-2.5 rounded-sm text-sm outline-none"
+                    style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!replyText.trim()}
+                    className="px-4 py-2 rounded-sm transition-opacity"
+                    style={{ background: T.gold, color: '#000', opacity: replyText.trim() ? 1 : 0.4 }}
+                  >
+                    <Send size={14} />
+                  </button>
+                </form>
+              ) : (
+                <div
+                  className="shrink-0 px-6 py-3 text-center text-[10px] uppercase tracking-widest"
+                  style={{ background: T.surface, borderTop: `1px solid ${T.border}`, color: T.textDim }}
+                >
+                  Conversation resolved
+                </div>
+              )}
+            </div>
+
+            {/* Notes side panel */}
+            {showNotes && (
+              <div className="w-60 shrink-0 flex flex-col" style={{ background: T.surface, borderLeft: `1px solid ${T.border}` }}>
+                <p className="text-[9px] font-black uppercase tracking-widest px-4 py-3" style={{ color: '#a78bfa', borderBottom: `1px solid ${T.border}` }}>Internal Notes</p>
+                <div className="flex-1 overflow-y-auto px-4 py-3">
+                  {selected.internal_notes ? (
+                    <p className="text-xs leading-relaxed whitespace-pre-line mb-3" style={{ color: T.text }}>{selected.internal_notes}</p>
+                  ) : (
+                    <p className="text-xs mb-3" style={{ color: T.textDim }}>No notes yet.</p>
+                  )}
+                </div>
+                <div className="p-3 shrink-0" style={{ borderTop: `1px solid ${T.border}` }}>
+                  <textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    rows={3}
+                    placeholder="Add note…"
+                    className="w-full px-3 py-2 rounded-sm text-xs outline-none resize-none mb-2"
+                    style={{ background: T.raised, border: `1px solid ${T.border}`, color: T.text }}
+                  />
+                  <button
+                    onClick={saveNote}
+                    className="w-full py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider"
+                    style={{ background: '#a78bfa', color: '#000' }}
+                  >
+                    Save Note
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center" style={{ background: T.bg }}>
+          <p className="text-xs uppercase tracking-widest" style={{ color: T.textDim }}>Select a conversation to reply</p>
         </div>
       )}
     </div>

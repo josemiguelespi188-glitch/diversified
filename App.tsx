@@ -281,7 +281,7 @@ const Portal: React.FC<{ user: User; onLogout: () => void; onUpdateUser: (data: 
         {currentView === 'accreditation'  && <Accreditation user={user} accounts={accounts} />}
         {currentView === 'distributions'  && <Distributions />}
         {currentView === 'documents'      && <Documents />}
-        {currentView === 'support'        && <Support />}
+        {currentView === 'support'        && <Support userName={user.full_name} accounts={accounts} />}
         {currentView === 'settings'       && <SettingsView onBack={() => setView('dashboard')} />}
       </main>
 
