@@ -185,20 +185,22 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess, onBack, onAdminAccess }) 
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: T.bg }}>
-      <div className="absolute top-6 left-8 flex items-center gap-4">
-        <button
-          onClick={() => setView('selection')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-bold transition-opacity hover:opacity-80"
-          style={{ background: T.surface, border: `1px solid ${T.border}`, color: T.textDim }}
-        >
-          <ChevronLeft size={13} /> Back
-        </button>
+      <div className="absolute top-6 left-8">
         <Logo />
       </div>
 
       <AuthCard>
         {/* Header */}
-        <div className="px-8 pt-8 pb-6 text-center space-y-2" style={{ borderBottom: `1px solid ${T.border}` }}>
+        <div className="px-8 pt-6 pb-6 text-center space-y-2" style={{ borderBottom: `1px solid ${T.border}` }}>
+          <div className="flex justify-start mb-1">
+            <button
+              onClick={() => setView('selection')}
+              className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest transition-opacity hover:opacity-70"
+              style={{ color: T.textDim }}
+            >
+              <ChevronLeft size={12} /> Back
+            </button>
+          </div>
           <div
             className="w-10 h-10 rounded-sm flex items-center justify-center mx-auto mb-3"
             style={{ background: T.goldFaint, border: `1px solid ${T.gold}40` }}

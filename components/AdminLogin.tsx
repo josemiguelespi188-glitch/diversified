@@ -36,16 +36,6 @@ export const AdminLogin: React.FC<Props> = ({ onSuccess, onBack }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: T.bg }}>
-      <div className="absolute top-6 left-8">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-bold transition-opacity hover:opacity-80"
-          style={{ background: T.surface, border: `1px solid ${T.border}`, color: T.textDim }}
-        >
-          <ChevronLeft size={13} /> Back
-        </button>
-      </div>
-
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-10 justify-center">
@@ -58,14 +48,23 @@ export const AdminLogin: React.FC<Props> = ({ onSuccess, onBack }) => {
         </div>
 
         <div className="rounded-md p-8" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-sm flex items-center justify-center" style={{ background: T.goldFaint, border: `1px solid ${T.gold}30` }}>
-              <Lock size={16} style={{ color: T.gold }} />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-sm flex items-center justify-center" style={{ background: T.goldFaint, border: `1px solid ${T.gold}30` }}>
+                <Lock size={16} style={{ color: T.gold }} />
+              </div>
+              <div>
+                <h1 className="text-sm font-black uppercase tracking-widest" style={{ color: T.text }}>Admin Portal</h1>
+                <p className="text-[10px]" style={{ color: T.textDim }}>Restricted access</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-sm font-black uppercase tracking-widest" style={{ color: T.text }}>Admin Portal</h1>
-              <p className="text-[10px]" style={{ color: T.textDim }}>Restricted access</p>
-            </div>
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest transition-opacity hover:opacity-70"
+              style={{ color: T.textDim }}
+            >
+              <ChevronLeft size={12} /> Back
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
